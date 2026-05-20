@@ -127,6 +127,12 @@ composer install
 vendor/bin/phpunit
 ```
 
+## 📖 API Documentation
+
+- **Reference docs:** [voicetel.com/docs/api/v0.6/voiceml/](https://voicetel.com/docs/api/v0.6/voiceml/)
+- **Validator:** [voicetel.com/voiceml/validator/](https://voicetel.com/voiceml/validator/)
+- **SDK catalogue:** [voicetel.com/docs/voiceml-sdks/](https://voicetel.com/docs/voiceml-sdks/)
+
 ## License
 
 MIT with Commons Clause — see [`LICENSE`](LICENSE).
