@@ -28,6 +28,7 @@ final class Recording implements Model
         public readonly ?string $priceUnit = null,
         public readonly ?array $encryptionDetails = null,
         public readonly ?array $subresourceUris = null,
+        public readonly ?string $mediaUrl = null,
     ) {
     }
 
@@ -63,6 +64,7 @@ final class Recording implements Model
             priceUnit: isset($data['price_unit']) ? (string) $data['price_unit'] : null,
             encryptionDetails: $enc,
             subresourceUris: $subs,
+            mediaUrl: isset($data['media_url']) ? (string) $data['media_url'] : null,
         );
     }
 }

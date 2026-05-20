@@ -23,6 +23,7 @@ use RuntimeException;
 use VoiceML\Model\CreateCallRequest;
 use VoiceML\Model\CreateIncomingPhoneNumberRequest;
 use VoiceML\Model\IncomingPhoneNumber;
+use VoiceML\Model\Recording;
 use VoiceML\Model\UpdateIncomingPhoneNumberRequest;
 use VoiceML\Model\UpdateParticipantRequest;
 use VoiceML\Resource\CallsResource;
@@ -647,6 +648,60 @@ final class SmokeTest extends TestCase
             'capabilities' => ['voice' => true, 'sms' => false, 'mms' => false],
             // fax flag deliberately omitted
         ]);
+    }
+
+    // ---------------------------------------------------------------------
+    // v0.6.2 additions — Recording.media_url (D5) + IPN.type (D6) round-trip
+    // ---------------------------------------------------------------------
+
+    public function testRecordingFromArrayPopulatesMediaUrlWhenPresent(): void
+    {
+        $payload = [
+            'sid' => 'RE00000000000000000000000000000001',
+            'account_sid' => self::ACCOUNT_SID,
+            'call_sid' => self::CALL_SID,
+            'status' => 'completed',
+            'media_url' => 'https://api.voiceml.example/Recordings/RE00000000000000000000000000000001.wav',
+        ];
+
+        $rec = Recording::fromArray($payload);
+
+        self::assertSame(
+            'https://api.voiceml.example/Recordings/RE00000000000000000000000000000001.wav',
+            $rec->mediaUrl,
+        );
+    }
+
+    public function testRecordingFromArrayLeavesMediaUrlNullWhenAbsent(): void
+    {
+        $payload = [
+            'sid' => 'RE00000000000000000000000000000001',
+            'account_sid' => self::ACCOUNT_SID,
+            'call_sid' => self::CALL_SID,
+            'status' => 'in-progress',
+            // media_url deliberately omitted
+        ];
+
+        $rec = Recording::fromArray($payload);
+
+        self::assertNull($rec->mediaUrl);
+    }
+
+    public function testIncomingPhoneNumberFromArrayPopulatesTypeField(): void
+    {
+        $payload = [
+            'sid' => self::PHONE_NUMBER_SID,
+            'account_sid' => self::ACCOUNT_SID,
+            'phone_number' => '+18005551234',
+            'api_version' => '2010-04-01',
+            'uri' => '/uri',
+            'type' => 'toll-free',
+            'capabilities' => ['voice' => true, 'sms' => true, 'mms' => false, 'fax' => false],
+        ];
+
+        $ipn = IncomingPhoneNumber::fromArray($payload);
+
+        self::assertSame('toll-free', $ipn->type);
     }
 
     /**
