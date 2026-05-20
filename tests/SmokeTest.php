@@ -20,14 +20,18 @@ use VoiceML\Exception\NotFoundException;
 use VoiceML\Exception\NotImplementedApiException;
 use VoiceML\Exception\RateLimitException;
 use VoiceML\Model\CreateCallRequest;
+use VoiceML\Model\CreateIncomingPhoneNumberRequest;
+use VoiceML\Model\UpdateIncomingPhoneNumberRequest;
 use VoiceML\Model\UpdateParticipantRequest;
 use VoiceML\Resource\CallsResource;
+use VoiceML\Resource\IncomingPhoneNumbersResource;
 
 final class SmokeTest extends TestCase
 {
     private const ACCOUNT_SID = 'AC00000000000000000000000000000001';
     private const API_KEY = 'test-api-key';
     private const CALL_SID = 'CAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    private const PHONE_NUMBER_SID = 'PN0123456789abcdef0123456789abcdef';
 
     /**
      * @return array{client: Client, mock: MockHandler, history: array<int,array<string,mixed>>}
@@ -107,8 +111,9 @@ final class SmokeTest extends TestCase
         /** @var Request $request */
         $request = $bag['history'][0]['request'];
         self::assertSame('POST', $request->getMethod());
+        // v0.5.x: paths carry the `.json` Twilio-wire suffix.
         self::assertStringContainsString(
-            '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/Calls',
+            '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/Calls.json',
             (string) $request->getUri(),
         );
         self::assertSame(
@@ -145,6 +150,11 @@ final class SmokeTest extends TestCase
 
         /** @var Request $request */
         $request = $bag['history'][0]['request'];
+        $uri = (string) $request->getUri();
+        self::assertStringContainsString(
+            '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/Calls.json',
+            $uri,
+        );
         $query = $request->getUri()->getQuery();
         // Literal Twilio wire query names.
         self::assertStringContainsString('StartTime%3E%3D=2026-05-01', $query);
@@ -279,5 +289,297 @@ final class SmokeTest extends TestCase
         $call = $bag['client']->calls->get(self::CALL_SID);
         self::assertSame(self::CALL_SID, $call->sid);
         self::assertCount(2, $bag['history']);
+    }
+
+    // ---------------------------------------------------------------------
+    // v0.5.0 additions
+    // ---------------------------------------------------------------------
+
+    public function testAuthTokenAliasResolvesAsApiKey(): void
+    {
+        // Passing authToken: instead of apiKey: must produce identical Basic-auth header.
+        $bag = $this->makeClientWithCreds(
+            responses: [
+                new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                    'sid' => self::CALL_SID,
+                    'account_sid' => self::ACCOUNT_SID,
+                    'api_version' => '2010-04-01',
+                    'status' => 'in-progress',
+                    'direction' => 'inbound',
+                    'date_created' => 'now',
+                    'date_updated' => 'now',
+                    'uri' => '/uri',
+                ])),
+            ],
+            apiKey: null,
+            authToken: self::API_KEY,
+        );
+
+        $bag['client']->calls->get(self::CALL_SID);
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        $expectedAuth = 'Basic ' . base64_encode(self::ACCOUNT_SID . ':' . self::API_KEY);
+        self::assertSame($expectedAuth, $request->getHeaderLine('Authorization'));
+    }
+
+    public function testAuthTokenAndApiKeyTogetherThrows(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        new Client(
+            accountSid: self::ACCOUNT_SID,
+            apiKey: 'k1',
+            authToken: 'k2',
+        );
+    }
+
+    public function testMissingApiKeyAndAuthTokenThrows(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        new Client(accountSid: self::ACCOUNT_SID);
+    }
+
+    public function testApiExceptionExposesMoreInfo(): void
+    {
+        $bag = $this->makeClient([
+            new Response(404, ['Content-Type' => 'application/json'], (string) json_encode([
+                'code' => 20404,
+                'message' => 'Not Found',
+                'more_info' => 'https://www.twilio.com/docs/errors/20404',
+                'status' => 404,
+            ])),
+        ]);
+
+        try {
+            $bag['client']->calls->get(self::CALL_SID);
+            self::fail('expected NotFoundException');
+        } catch (NotFoundException $e) {
+            self::assertSame('https://www.twilio.com/docs/errors/20404', $e->moreInfo);
+            self::assertSame('https://www.twilio.com/docs/errors/20404', $e->getMoreInfo());
+        }
+    }
+
+    public function testApiExceptionMoreInfoNullWhenAbsent(): void
+    {
+        $bag = $this->makeClient([
+            new Response(409, ['Content-Type' => 'application/json'], (string) json_encode([
+                'code' => 20409,
+                'message' => 'Conflict',
+                'status' => 409,
+            ])),
+        ]);
+
+        try {
+            $bag['client']->calls->get(self::CALL_SID);
+            self::fail('expected ConflictException');
+        } catch (ConflictException $e) {
+            self::assertNull($e->moreInfo);
+            self::assertNull($e->getMoreInfo());
+        }
+    }
+
+    public function testIncomingPhoneNumbersResourceIsWired(): void
+    {
+        $client = new Client(accountSid: self::ACCOUNT_SID, apiKey: self::API_KEY);
+        self::assertInstanceOf(IncomingPhoneNumbersResource::class, $client->incomingPhoneNumbers);
+    }
+
+    public function testIncomingPhoneNumbersListHitsDotJsonPathAndFilter(): void
+    {
+        $bag = $this->makeClient([
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'incoming_phone_numbers' => [
+                    [
+                        'sid' => self::PHONE_NUMBER_SID,
+                        'account_sid' => self::ACCOUNT_SID,
+                        'phone_number' => '+18005551234',
+                        'api_version' => '2010-04-01',
+                        'uri' => '/2010-04-01/Accounts/' . self::ACCOUNT_SID
+                            . '/IncomingPhoneNumbers/' . self::PHONE_NUMBER_SID . '.json',
+                        'voice_url' => 'https://example.com/voice',
+                        'voice_method' => 'POST',
+                        'date_created' => 'now',
+                        'date_updated' => 'now',
+                    ],
+                ],
+                'page' => 0,
+                'page_size' => 50,
+                'total' => 1,
+            ])),
+        ]);
+
+        $list = $bag['client']->incomingPhoneNumbers->list(phoneNumber: '+18005551234');
+
+        self::assertCount(1, $list->incomingPhoneNumbers);
+        self::assertSame(self::PHONE_NUMBER_SID, $list->incomingPhoneNumbers[0]->sid);
+        self::assertSame('+18005551234', $list->incomingPhoneNumbers[0]->phoneNumber);
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        $uri = (string) $request->getUri();
+        self::assertStringContainsString(
+            '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/IncomingPhoneNumbers.json',
+            $uri,
+        );
+        // E.164 leading `+` round-trips through Guzzle as `%2B`.
+        $query = $request->getUri()->getQuery();
+        self::assertStringContainsString('PhoneNumber=%2B18005551234', $query);
+    }
+
+    public function testIncomingPhoneNumbersCreatePostsFormBody(): void
+    {
+        $bag = $this->makeClient([
+            new Response(201, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => self::PHONE_NUMBER_SID,
+                'account_sid' => self::ACCOUNT_SID,
+                'phone_number' => '+18005551234',
+                'api_version' => '2010-04-01',
+                'uri' => '/uri',
+                'voice_url' => 'https://example.com/voice',
+                'voice_method' => 'POST',
+            ])),
+        ]);
+
+        $ipn = $bag['client']->incomingPhoneNumbers->create(new CreateIncomingPhoneNumberRequest(
+            phoneNumber: '+18005551234',
+            voiceUrl: 'https://example.com/voice',
+            voiceMethod: 'POST',
+        ));
+
+        self::assertSame(self::PHONE_NUMBER_SID, $ipn->sid);
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('POST', $request->getMethod());
+        self::assertStringContainsString(
+            '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/IncomingPhoneNumbers.json',
+            (string) $request->getUri(),
+        );
+        parse_str((string) $request->getBody(), $parsed);
+        self::assertSame('+18005551234', $parsed['PhoneNumber']);
+        self::assertSame('https://example.com/voice', $parsed['VoiceUrl']);
+        self::assertSame('POST', $parsed['VoiceMethod']);
+    }
+
+    public function testIncomingPhoneNumbersGetUsesSidInPath(): void
+    {
+        $bag = $this->makeClient([
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => self::PHONE_NUMBER_SID,
+                'account_sid' => self::ACCOUNT_SID,
+                'phone_number' => '+18005551234',
+                'api_version' => '2010-04-01',
+                'uri' => '/uri',
+            ])),
+        ]);
+
+        $ipn = $bag['client']->incomingPhoneNumbers->get(self::PHONE_NUMBER_SID);
+        self::assertSame(self::PHONE_NUMBER_SID, $ipn->sid);
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertStringContainsString(
+            '/IncomingPhoneNumbers/' . self::PHONE_NUMBER_SID . '.json',
+            (string) $request->getUri(),
+        );
+    }
+
+    public function testIncomingPhoneNumbersUpdatePostsPartialBody(): void
+    {
+        $bag = $this->makeClient([
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => self::PHONE_NUMBER_SID,
+                'account_sid' => self::ACCOUNT_SID,
+                'phone_number' => '+18005551234',
+                'api_version' => '2010-04-01',
+                'uri' => '/uri',
+                'voice_url' => 'https://example.com/v2',
+            ])),
+        ]);
+
+        $bag['client']->incomingPhoneNumbers->update(
+            self::PHONE_NUMBER_SID,
+            new UpdateIncomingPhoneNumberRequest(voiceUrl: 'https://example.com/v2'),
+        );
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('POST', $request->getMethod());
+        self::assertStringContainsString(
+            '/IncomingPhoneNumbers/' . self::PHONE_NUMBER_SID . '.json',
+            (string) $request->getUri(),
+        );
+        parse_str((string) $request->getBody(), $parsed);
+        self::assertSame('https://example.com/v2', $parsed['VoiceUrl']);
+        self::assertArrayNotHasKey('VoiceMethod', $parsed);
+    }
+
+    public function testIncomingPhoneNumbersDeleteIssuesDeleteWithDotJson(): void
+    {
+        $bag = $this->makeClient([
+            new Response(204, [], ''),
+        ]);
+
+        $bag['client']->incomingPhoneNumbers->delete(self::PHONE_NUMBER_SID);
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('DELETE', $request->getMethod());
+        self::assertStringContainsString(
+            '/IncomingPhoneNumbers/' . self::PHONE_NUMBER_SID . '.json',
+            (string) $request->getUri(),
+        );
+    }
+
+    public function testRecordingsAudioPathKeepsDotWavAndOmitsDotJson(): void
+    {
+        // Body is just any bytes — focus is on the URL shape.
+        $bag = $this->makeClient([
+            new Response(200, ['Content-Type' => 'audio/wav'], 'RIFFsentinel'),
+        ]);
+
+        $bag['client']->recordings->getAudio('RE00000000000000000000000000000001');
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        $uri = (string) $request->getUri();
+        self::assertStringContainsString('/Recordings/RE00000000000000000000000000000001.wav', $uri);
+        self::assertStringNotContainsString('.json', $uri);
+    }
+
+    /**
+     * Variant of {@see makeClient()} that lets us pass authToken: rather than apiKey:.
+     *
+     * @return array{client: Client, mock: MockHandler, history: array<int,array<string,mixed>>}
+     */
+    private function makeClientWithCreds(
+        array $responses,
+        ?string $apiKey,
+        ?string $authToken,
+        ?float $timeout = null,
+        ?int $maxRetries = null,
+    ): array {
+        $mock = new MockHandler($responses);
+        $stack = HandlerStack::create($mock);
+        /** @var array<int,array<string,mixed>> $history */
+        $history = [];
+        $stack->push(Middleware::history($history));
+
+        $guzzle = new GuzzleClient([
+            'handler' => $stack,
+            'http_errors' => false,
+            'allow_redirects' => false,
+        ]);
+
+        $client = new Client(
+            accountSid: self::ACCOUNT_SID,
+            apiKey: $apiKey,
+            timeout: $timeout,
+            maxRetries: $maxRetries,
+            httpClient: $guzzle,
+            authToken: $authToken,
+        );
+
+        return ['client' => $client, 'mock' => $mock, 'history' => &$history];
     }
 }

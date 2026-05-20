@@ -49,6 +49,7 @@ echo $call->sid, ' ', $call->statusRaw, PHP_EOL;
 | `$client->queues`             | `/Queues` + `/Members`                                                                           |
 | `$client->applications`       | `/Applications`                                                                                  |
 | `$client->recordings`         | account-scoped `/Recordings` + WAV fetch                                                         |
+| `$client->incomingPhoneNumbers` | `/IncomingPhoneNumbers` — tenant-scoped DID assignment + voice routing                         |
 | `$client->diagnostics`        | `/health` + `/openapi.json`                                                                      |
 
 ## Twilio drop-in
@@ -86,7 +87,17 @@ All errors extend `VoiceML\Exception\VoiceMLException` (which extends `RuntimeEx
 | 5xx  | `VoiceML\Exception\ServerException`                      |
 | any  | `VoiceML\Exception\ApiException` (base for the above)    |
 
-Each `ApiException` carries the parsed Twilio-shape error body (`code`, `message`, `more_info`, `status`) on `->errorCode`, `->getMessage()`, and `->body`.
+Each `ApiException` carries the parsed Twilio-shape error body (`code`, `message`, `more_info`, `status`) on `->errorCode`, `->getMessage()`, `->getMoreInfo()` / `->moreInfo`, and `->body`.
+
+### Twilio `authToken` alias
+
+For ports from the Twilio PHP SDK, the credential may be passed as `authToken:` instead of `apiKey:` — they are aliases:
+
+```php
+$client = new VoiceML\Client(accountSid: $sid, authToken: $token);
+```
+
+Passing both raises `ConfigurationException`.
 
 ## Recording audio
 

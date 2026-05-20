@@ -259,6 +259,7 @@ final class Transport
 
         $code = null;
         $message = sprintf('HTTP %d', $status);
+        $moreInfo = null;
         if (is_array($body)) {
             if (isset($body['code']) && (is_int($body['code']) || is_string($body['code']))) {
                 $code = $body['code'];
@@ -266,24 +267,32 @@ final class Transport
             if (isset($body['message']) && is_string($body['message']) && $body['message'] !== '') {
                 $message = $body['message'];
             }
+            if (isset($body['more_info']) && is_string($body['more_info']) && $body['more_info'] !== '') {
+                $moreInfo = $body['more_info'];
+            }
         }
 
-        throw self::makeApiException($status, $code, $body, $message);
+        throw self::makeApiException($status, $code, $body, $message, $moreInfo);
     }
 
-    private static function makeApiException(int $status, int|string|null $code, mixed $body, string $message): ApiException
-    {
+    private static function makeApiException(
+        int $status,
+        int|string|null $code,
+        mixed $body,
+        string $message,
+        ?string $moreInfo,
+    ): ApiException {
         return match (true) {
-            $status === 400 => new BadRequestException($message, $status, $code, $body),
-            $status === 401 => new AuthenticationException($message, $status, $code, $body),
-            $status === 403 => new PermissionDeniedException($message, $status, $code, $body),
-            $status === 404 => new NotFoundException($message, $status, $code, $body),
-            $status === 409 => new ConflictException($message, $status, $code, $body),
-            $status === 410 => new GoneException($message, $status, $code, $body),
-            $status === 429 => new RateLimitException($message, $status, $code, $body),
-            $status === 501 => new NotImplementedApiException($message, $status, $code, $body),
-            $status >= 500 && $status < 600 => new ServerException($message, $status, $code, $body),
-            default => new ApiException($message, $status, $code, $body),
+            $status === 400 => new BadRequestException($message, $status, $code, $body, null, $moreInfo),
+            $status === 401 => new AuthenticationException($message, $status, $code, $body, null, $moreInfo),
+            $status === 403 => new PermissionDeniedException($message, $status, $code, $body, null, $moreInfo),
+            $status === 404 => new NotFoundException($message, $status, $code, $body, null, $moreInfo),
+            $status === 409 => new ConflictException($message, $status, $code, $body, null, $moreInfo),
+            $status === 410 => new GoneException($message, $status, $code, $body, null, $moreInfo),
+            $status === 429 => new RateLimitException($message, $status, $code, $body, null, $moreInfo),
+            $status === 501 => new NotImplementedApiException($message, $status, $code, $body, null, $moreInfo),
+            $status >= 500 && $status < 600 => new ServerException($message, $status, $code, $body, null, $moreInfo),
+            default => new ApiException($message, $status, $code, $body, null, $moreInfo),
         };
     }
 

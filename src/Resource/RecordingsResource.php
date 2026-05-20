@@ -45,7 +45,7 @@ final class RecordingsResource extends Resource
      */
     public function getAudio(string $recordingSid): RecordingAudio
     {
-        $result = $this->transport->fetchBytes($this->path('Recordings', $recordingSid) . '.wav');
+        $result = $this->transport->fetchBytes($this->pathRaw('Recordings', $recordingSid) . '.wav');
 
         $headers = $result['headers'];
         $contentType = 'application/octet-stream';

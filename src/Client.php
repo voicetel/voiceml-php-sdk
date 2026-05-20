@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace VoiceML;
 
 use GuzzleHttp\ClientInterface;
+use VoiceML\Exception\ConfigurationException;
 use VoiceML\Resource\ApplicationsResource;
 use VoiceML\Resource\CallsResource;
 use VoiceML\Resource\ConferencesResource;
 use VoiceML\Resource\DiagnosticsResource;
+use VoiceML\Resource\IncomingPhoneNumbersResource;
 use VoiceML\Resource\QueuesResource;
 use VoiceML\Resource\RecordingsResource;
 
@@ -29,6 +31,10 @@ use VoiceML\Resource\RecordingsResource;
  *     url: 'https://example.com/twiml',
  * ));
  * ```
+ *
+ * For drop-in compatibility with the Twilio PHP SDK's `$authToken` constructor argument,
+ * the credential can also be passed as `authToken:` — it is treated as an alias for
+ * `apiKey:`. Passing both raises {@see \VoiceML\Exception\ConfigurationException}.
  */
 final class Client
 {
@@ -37,6 +43,7 @@ final class Client
     public readonly QueuesResource $queues;
     public readonly ApplicationsResource $applications;
     public readonly RecordingsResource $recordings;
+    public readonly IncomingPhoneNumbersResource $incomingPhoneNumbers;
     public readonly DiagnosticsResource $diagnostics;
 
     private readonly Transport $transport;
@@ -44,16 +51,27 @@ final class Client
 
     public function __construct(
         string $accountSid,
-        string $apiKey,
+        ?string $apiKey = null,
         ?string $baseUrl = null,
         ?float $timeout = null,
         ?int $maxRetries = null,
         ?string $userAgent = null,
         ?ClientInterface $httpClient = null,
+        ?string $authToken = null,
     ) {
+        if ($apiKey !== null && $authToken !== null) {
+            throw new ConfigurationException(
+                'pass only one of apiKey or authToken; authToken is an alias for apiKey'
+            );
+        }
+        $resolvedKey = $apiKey ?? $authToken;
+        if ($resolvedKey === null) {
+            throw new ConfigurationException('apiKey (or authToken) is required');
+        }
+
         $this->options = new ClientOptions(
             accountSid: $accountSid,
-            apiKey: $apiKey,
+            apiKey: $resolvedKey,
             baseUrl: $baseUrl,
             timeout: $timeout,
             maxRetries: $maxRetries,
@@ -67,6 +85,7 @@ final class Client
         $this->queues = new QueuesResource($this->transport);
         $this->applications = new ApplicationsResource($this->transport);
         $this->recordings = new RecordingsResource($this->transport);
+        $this->incomingPhoneNumbers = new IncomingPhoneNumbersResource($this->transport);
         $this->diagnostics = new DiagnosticsResource($this->transport);
     }
 
