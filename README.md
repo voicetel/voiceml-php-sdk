@@ -1,6 +1,6 @@
 # VoiceML PHP SDK
 
-Official PHP client for the [VoiceML](https://voiceml.voicetel.com) REST API — VoiceTel's outbound voice and AMD service with a Twilio-compatible REST surface.
+Official PHP client for the [VoiceML](https://voicetel.com/docs/api/v0.6/voiceml/) REST API — VoiceTel's outbound voice and AMD service with a Twilio-compatible REST surface.
 
 - **PHP:** 8.1+
 - **HTTP:** [Guzzle 7](https://github.com/guzzle/guzzle) (`guzzlehttp/guzzle: ^7.8`)
