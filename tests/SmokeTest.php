@@ -19,8 +19,10 @@ use VoiceML\Exception\ConflictException;
 use VoiceML\Exception\NotFoundException;
 use VoiceML\Exception\NotImplementedApiException;
 use VoiceML\Exception\RateLimitException;
+use RuntimeException;
 use VoiceML\Model\CreateCallRequest;
 use VoiceML\Model\CreateIncomingPhoneNumberRequest;
+use VoiceML\Model\IncomingPhoneNumber;
 use VoiceML\Model\UpdateIncomingPhoneNumberRequest;
 use VoiceML\Model\UpdateParticipantRequest;
 use VoiceML\Resource\CallsResource;
@@ -396,6 +398,7 @@ final class SmokeTest extends TestCase
                         'api_version' => '2010-04-01',
                         'uri' => '/2010-04-01/Accounts/' . self::ACCOUNT_SID
                             . '/IncomingPhoneNumbers/' . self::PHONE_NUMBER_SID . '.json',
+                        'capabilities' => ['voice' => true, 'sms' => false, 'mms' => false, 'fax' => false],
                         'voice_url' => 'https://example.com/voice',
                         'voice_method' => 'POST',
                         'date_created' => 'now',
@@ -435,6 +438,7 @@ final class SmokeTest extends TestCase
                 'phone_number' => '+18005551234',
                 'api_version' => '2010-04-01',
                 'uri' => '/uri',
+                'capabilities' => ['voice' => true, 'sms' => false, 'mms' => false, 'fax' => false],
                 'voice_url' => 'https://example.com/voice',
                 'voice_method' => 'POST',
             ])),
@@ -470,6 +474,7 @@ final class SmokeTest extends TestCase
                 'phone_number' => '+18005551234',
                 'api_version' => '2010-04-01',
                 'uri' => '/uri',
+                'capabilities' => ['voice' => true, 'sms' => false, 'mms' => false, 'fax' => false],
             ])),
         ]);
 
@@ -493,6 +498,7 @@ final class SmokeTest extends TestCase
                 'phone_number' => '+18005551234',
                 'api_version' => '2010-04-01',
                 'uri' => '/uri',
+                'capabilities' => ['voice' => true, 'sms' => false, 'mms' => false, 'fax' => false],
                 'voice_url' => 'https://example.com/v2',
             ])),
         ]);
@@ -545,6 +551,102 @@ final class SmokeTest extends TestCase
         $uri = (string) $request->getUri();
         self::assertStringContainsString('/Recordings/RE00000000000000000000000000000001.wav', $uri);
         self::assertStringNotContainsString('.json', $uri);
+    }
+
+    // ---------------------------------------------------------------------
+    // v0.6.0 additions — Twilio-compat IncomingPhoneNumber field set
+    // ---------------------------------------------------------------------
+
+    public function testIncomingPhoneNumberDeserializesFullTwilioShape(): void
+    {
+        $payload = [
+            'sid' => self::PHONE_NUMBER_SID,
+            'account_sid' => self::ACCOUNT_SID,
+            'phone_number' => '+18005551234',
+            'friendly_name' => 'Main Line',
+            'api_version' => '2010-04-01',
+            'uri' => '/2010-04-01/Accounts/' . self::ACCOUNT_SID
+                . '/IncomingPhoneNumbers/' . self::PHONE_NUMBER_SID . '.json',
+            'origin' => '',
+            'beta' => false,
+            'type' => 'local',
+            'capabilities' => [
+                'voice' => true,
+                'sms' => false,
+                'mms' => false,
+                'fax' => false,
+            ],
+            'voice_url' => 'https://example.com/voice',
+            'voice_method' => 'POST',
+            'voice_fallback_url' => 'https://example.com/voice-fallback',
+            'voice_fallback_method' => 'POST',
+            'voice_application_sid' => '',
+            'voice_caller_id_lookup' => false,
+            'voice_receive_mode' => 'voice',
+            'sms_url' => '',
+            'sms_method' => '',
+            'sms_fallback_url' => '',
+            'sms_fallback_method' => '',
+            'sms_application_sid' => '',
+            'status_callback' => '',
+            'status_callback_method' => '',
+            'trunk_sid' => '',
+            'address_sid' => '',
+            'address_requirements' => 'none',
+            'identity_sid' => '',
+            'bundle_sid' => '',
+            'emergency_status' => '',
+            'emergency_address_sid' => '',
+            'emergency_address_status' => '',
+            'status' => '',
+            'date_created' => 'now',
+            'date_updated' => 'now',
+        ];
+
+        $ipn = IncomingPhoneNumber::fromArray($payload);
+
+        // Capabilities sub-object is wired up and required fields land verbatim.
+        self::assertTrue($ipn->capabilities->voice);
+        self::assertFalse($ipn->capabilities->sms);
+        self::assertFalse($ipn->capabilities->mms);
+        self::assertFalse($ipn->capabilities->fax);
+
+        // Twilio-compat scalars round-trip — including empty-string enum defaults.
+        self::assertSame('', $ipn->origin);
+        self::assertFalse($ipn->beta);
+        self::assertSame('local', $ipn->type);
+        self::assertFalse($ipn->voiceCallerIdLookup);
+        self::assertSame('voice', $ipn->voiceReceiveMode);
+        self::assertSame('none', $ipn->addressRequirements);
+        self::assertSame('', $ipn->emergencyStatus);
+        self::assertSame('', $ipn->status);
+    }
+
+    public function testIncomingPhoneNumberMissingCapabilitiesThrows(): void
+    {
+        $this->expectException(RuntimeException::class);
+        IncomingPhoneNumber::fromArray([
+            'sid' => self::PHONE_NUMBER_SID,
+            'account_sid' => self::ACCOUNT_SID,
+            'phone_number' => '+18005551234',
+            'api_version' => '2010-04-01',
+            'uri' => '/uri',
+            // capabilities deliberately omitted
+        ]);
+    }
+
+    public function testIncomingPhoneNumberCapabilitiesMissingFlagThrows(): void
+    {
+        $this->expectException(RuntimeException::class);
+        IncomingPhoneNumber::fromArray([
+            'sid' => self::PHONE_NUMBER_SID,
+            'account_sid' => self::ACCOUNT_SID,
+            'phone_number' => '+18005551234',
+            'api_version' => '2010-04-01',
+            'uri' => '/uri',
+            'capabilities' => ['voice' => true, 'sms' => false, 'mms' => false],
+            // fax flag deliberately omitted
+        ]);
     }
 
     /**
