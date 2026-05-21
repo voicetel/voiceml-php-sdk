@@ -23,11 +23,14 @@ use RuntimeException;
 use VoiceML\Model\CreateCallRequest;
 use VoiceML\Model\CreateIncomingPhoneNumberRequest;
 use VoiceML\Model\IncomingPhoneNumber;
+use VoiceML\Model\ListCallsParams;
+use VoiceML\Model\Participant;
 use VoiceML\Model\Recording;
 use VoiceML\Model\UpdateIncomingPhoneNumberRequest;
 use VoiceML\Model\UpdateParticipantRequest;
 use VoiceML\Resource\CallsResource;
 use VoiceML\Resource\IncomingPhoneNumbersResource;
+use VoiceML\Version;
 
 final class SmokeTest extends TestCase
 {
@@ -702,6 +705,77 @@ final class SmokeTest extends TestCase
         $ipn = IncomingPhoneNumber::fromArray($payload);
 
         self::assertSame('toll-free', $ipn->type);
+    }
+
+    // ---------------------------------------------------------------------
+    // v0.6.3 additions — Participant coaching, Recording.error_code, list filters
+    // ---------------------------------------------------------------------
+
+    public function testParticipantFromArrayPopulatesCoachingFields(): void
+    {
+        $payload = [
+            'call_sid' => self::CALL_SID,
+            'conference_sid' => 'CF00000000000000000000000000000001',
+            'account_sid' => self::ACCOUNT_SID,
+            'muted' => false,
+            'hold' => false,
+            'coaching' => true,
+            'call_sid_to_coach' => 'CA00000000000000000000000000000002',
+            'queue_time' => '9',
+            'start_conference_on_enter' => true,
+            'end_conference_on_exit' => false,
+            'status' => 'failed',
+            'api_version' => '2010-04-01',
+            'uri' => '/uri',
+        ];
+
+        $participant = Participant::fromArray($payload);
+
+        self::assertTrue($participant->coaching);
+        self::assertSame('CA00000000000000000000000000000002', $participant->callSidToCoach);
+        self::assertSame('9', $participant->queueTime);
+        self::assertSame('failed', $participant->status);
+    }
+
+    public function testRecordingFromArrayPopulatesErrorCode(): void
+    {
+        $payload = [
+            'sid' => 'RE00000000000000000000000000000001',
+            'account_sid' => self::ACCOUNT_SID,
+            'call_sid' => self::CALL_SID,
+            'status' => 'completed',
+            'source' => 'StartConferenceRecordingAPI',
+            'error_code' => 13227,
+        ];
+
+        $rec = Recording::fromArray($payload);
+
+        self::assertSame('StartConferenceRecordingAPI', $rec->source);
+        self::assertSame(13227, $rec->errorCode);
+    }
+
+    public function testListCallsParamsEmitsStartAndEndTimeWireNames(): void
+    {
+        $query = (new ListCallsParams(
+            startTime: '2025-06-01',
+            startTimeLt: '2025-06-15',
+            startTimeGt: '2025-05-01',
+            endTime: '2025-06-30',
+            endTimeLt: '2025-07-01',
+            endTimeGt: '2025-06-01',
+        ))->toQuery();
+
+        self::assertSame('2025-06-01', $query['StartTime']);
+        self::assertSame('2025-06-15', $query['StartTime<']);
+        self::assertSame('2025-05-01', $query['StartTime>']);
+        self::assertSame('2025-06-30', $query['EndTime']);
+        self::assertSame('2025-07-01', $query['EndTime<']);
+        self::assertSame('2025-06-01', $query['EndTime>']);
+    }
+
+    public function testVersionIs063(): void
+    {
+        self::assertSame('0.6.3', Version::VERSION);
     }
 
     /**

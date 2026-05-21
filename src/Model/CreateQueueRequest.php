@@ -6,6 +6,8 @@ namespace VoiceML\Model;
 
 /**
  * Body for `POST /Queues`. Idempotent on `FriendlyName`.
+ *
+ * `maxSize` of `0` means unlimited (Twilio default).
  */
 final class CreateQueueRequest extends FormRequest
 {

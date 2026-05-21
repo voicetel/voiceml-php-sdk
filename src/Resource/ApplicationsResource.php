@@ -7,6 +7,7 @@ namespace VoiceML\Resource;
 use VoiceML\Model\Application;
 use VoiceML\Model\ApplicationList;
 use VoiceML\Model\CreateApplicationRequest;
+use VoiceML\Model\ListApplicationsParams;
 use VoiceML\Model\UpdateApplicationRequest;
 
 /**
@@ -21,10 +22,11 @@ final class ApplicationsResource extends Resource
         return Application::fromArray($raw);
     }
 
-    public function list(): ApplicationList
+    public function list(?ListApplicationsParams $params = null): ApplicationList
     {
+        $query = ($params ?? new ListApplicationsParams())->toQuery();
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Applications'));
+        $raw = $this->transport->request('GET', $this->path('Applications'), $query);
         return ApplicationList::fromArray($raw);
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace VoiceML\Resource;
 
+use VoiceML\Model\ListRecordingsParams;
 use VoiceML\Model\Recording;
 use VoiceML\Model\RecordingAudio;
 use VoiceML\Model\RecordingList;
@@ -16,14 +17,11 @@ use VoiceML\Model\RecordingList;
  */
 final class RecordingsResource extends Resource
 {
-    public function list(?int $page = null, ?int $pageSize = null): RecordingList
+    public function list(?ListRecordingsParams $params = null): RecordingList
     {
+        $query = ($params ?? new ListRecordingsParams())->toQuery();
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request(
-            'GET',
-            $this->path('Recordings'),
-            ['Page' => $page, 'PageSize' => $pageSize],
-        );
+        $raw = $this->transport->request('GET', $this->path('Recordings'), $query);
         return RecordingList::fromArray($raw);
     }
 

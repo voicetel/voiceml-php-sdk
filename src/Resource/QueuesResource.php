@@ -6,6 +6,7 @@ namespace VoiceML\Resource;
 
 use VoiceML\Model\CreateQueueRequest;
 use VoiceML\Model\DequeueRequest;
+use VoiceML\Model\ListPageParams;
 use VoiceML\Model\Queue;
 use VoiceML\Model\QueueList;
 use VoiceML\Model\QueueMember;
@@ -52,10 +53,11 @@ final class QueuesResource extends Resource
 
     // --- Members ---
 
-    public function listMembers(string $queueSid): QueueMemberList
+    public function listMembers(string $queueSid, ?ListPageParams $params = null): QueueMemberList
     {
+        $query = ($params ?? new ListPageParams())->toQuery();
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Queues', $queueSid, 'Members'));
+        $raw = $this->transport->request('GET', $this->path('Queues', $queueSid, 'Members'), $query);
         return QueueMemberList::fromArray($raw);
     }
 

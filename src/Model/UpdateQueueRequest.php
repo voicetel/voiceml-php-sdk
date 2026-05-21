@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace VoiceML\Model;
 
 /**
- * Body for `POST /Queues/{sid}`.
+ * Body for `POST /Queues/{sid}`. `maxSize` of `0` means unlimited (Twilio default).
  */
 final class UpdateQueueRequest extends FormRequest
 {

@@ -29,6 +29,7 @@ final class Recording implements Model
         public readonly ?array $encryptionDetails = null,
         public readonly ?array $subresourceUris = null,
         public readonly ?string $mediaUrl = null,
+        public readonly ?int $errorCode = null,
     ) {
     }
 
@@ -65,6 +66,9 @@ final class Recording implements Model
             encryptionDetails: $enc,
             subresourceUris: $subs,
             mediaUrl: isset($data['media_url']) ? (string) $data['media_url'] : null,
+            errorCode: array_key_exists('error_code', $data) && $data['error_code'] !== null
+                ? (int) $data['error_code']
+                : null,
         );
     }
 }

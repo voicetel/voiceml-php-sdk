@@ -9,6 +9,9 @@ use VoiceML\Model\CallList;
 use VoiceML\Model\CallTranscription;
 use VoiceML\Model\CreateCallRequest;
 use VoiceML\Model\EventsList;
+use VoiceML\Model\ListCallsParams;
+use VoiceML\Model\ListPageParams;
+use VoiceML\Model\ListRecordingsParams;
 use VoiceML\Model\NotificationsList;
 use VoiceML\Model\Recording;
 use VoiceML\Model\RecordingList;
@@ -38,16 +41,38 @@ final class CallsResource extends Resource
         ?string $from = null,
         ?string $status = null,
         ?string $parentCallSid = null,
+        ?string $startTime = null,
+        ?string $startTimeLt = null,
+        ?string $startTimeGt = null,
         ?string $startTimeGte = null,
         ?string $startTimeLte = null,
+        ?string $endTime = null,
+        ?string $endTimeLt = null,
+        ?string $endTimeGt = null,
         ?int $page = null,
         ?int $pageSize = null,
     ): CallList {
+        $params = new ListCallsParams(
+            to: $to,
+            from: $from,
+            status: $status,
+            parentCallSid: $parentCallSid,
+            startTime: $startTime,
+            startTimeLt: $startTimeLt,
+            startTimeGt: $startTimeGt,
+            startTimeGte: $startTimeGte,
+            startTimeLte: $startTimeLte,
+            endTime: $endTime,
+            endTimeLt: $endTimeLt,
+            endTimeGt: $endTimeGt,
+            page: $page,
+            pageSize: $pageSize,
+        );
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request(
             'GET',
             $this->path('Calls'),
-            self::listParams($to, $from, $status, $parentCallSid, $startTimeGte, $startTimeLte, $page, $pageSize),
+            $params->toQuery(),
         );
         return CallList::fromArray($raw);
     }
@@ -80,10 +105,11 @@ final class CallsResource extends Resource
 
     // --- Recordings (call-scoped) ---
 
-    public function listRecordings(string $callSid): RecordingList
+    public function listRecordings(string $callSid, ?ListRecordingsParams $params = null): RecordingList
     {
+        $query = ($params ?? new ListRecordingsParams())->toQuery();
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Recordings'));
+        $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Recordings'), $query);
         return RecordingList::fromArray($raw);
     }
 
@@ -251,17 +277,19 @@ final class CallsResource extends Resource
 
     // --- Notifications / Events (compat stubs) ---
 
-    public function listNotifications(string $callSid): NotificationsList
+    public function listNotifications(string $callSid, ?ListPageParams $params = null): NotificationsList
     {
+        $query = ($params ?? new ListPageParams())->toQuery();
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Notifications'));
+        $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Notifications'), $query);
         return NotificationsList::fromArray($raw);
     }
 
-    public function listEvents(string $callSid): EventsList
+    public function listEvents(string $callSid, ?ListPageParams $params = null): EventsList
     {
+        $query = ($params ?? new ListPageParams())->toQuery();
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Events'));
+        $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Events'), $query);
         return EventsList::fromArray($raw);
     }
 
@@ -295,8 +323,14 @@ final class CallsResource extends Resource
         ?string $from = null,
         ?string $status = null,
         ?string $parentCallSid = null,
+        ?string $startTime = null,
+        ?string $startTimeLt = null,
+        ?string $startTimeGt = null,
         ?string $startTimeGte = null,
         ?string $startTimeLte = null,
+        ?string $endTime = null,
+        ?string $endTimeLt = null,
+        ?string $endTimeGt = null,
         ?int $pageSize = null,
     ): array {
         /** @var list<Call> $out */
@@ -308,8 +342,14 @@ final class CallsResource extends Resource
                 from: $from,
                 status: $status,
                 parentCallSid: $parentCallSid,
+                startTime: $startTime,
+                startTimeLt: $startTimeLt,
+                startTimeGt: $startTimeGt,
                 startTimeGte: $startTimeGte,
                 startTimeLte: $startTimeLte,
+                endTime: $endTime,
+                endTimeLt: $endTimeLt,
+                endTimeGt: $endTimeGt,
                 page: $page,
                 pageSize: $pageSize,
             );
@@ -321,31 +361,5 @@ final class CallsResource extends Resource
             }
             $page += 1;
         }
-    }
-
-    /**
-     * @return array<string,mixed>
-     */
-    private static function listParams(
-        ?string $to,
-        ?string $from,
-        ?string $status,
-        ?string $parentCallSid,
-        ?string $startTimeGte,
-        ?string $startTimeLte,
-        ?int $page,
-        ?int $pageSize,
-    ): array {
-        // Note: spec defines `StartTime>=` and `StartTime<=` as the literal query names.
-        return [
-            'To' => $to,
-            'From' => $from,
-            'Status' => $status,
-            'ParentCallSid' => $parentCallSid,
-            'StartTime>=' => $startTimeGte,
-            'StartTime<=' => $startTimeLte,
-            'Page' => $page,
-            'PageSize' => $pageSize,
-        ];
     }
 }

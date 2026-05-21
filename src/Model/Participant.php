@@ -12,6 +12,9 @@ final class Participant implements Model
         public readonly string $accountSid,
         public readonly bool $muted,
         public readonly bool $hold,
+        public readonly bool $coaching,
+        public readonly ?string $callSidToCoach = null,
+        public readonly string $queueTime = '0',
         public readonly bool $startConferenceOnEnter,
         public readonly bool $endConferenceOnExit,
         public readonly string $status,
@@ -34,6 +37,11 @@ final class Participant implements Model
             accountSid: (string) ($data['account_sid'] ?? ''),
             muted: (bool) ($data['muted'] ?? false),
             hold: (bool) ($data['hold'] ?? false),
+            coaching: (bool) ($data['coaching'] ?? false),
+            callSidToCoach: isset($data['call_sid_to_coach']) && $data['call_sid_to_coach'] !== ''
+                ? (string) $data['call_sid_to_coach']
+                : null,
+            queueTime: (string) ($data['queue_time'] ?? '0'),
             startConferenceOnEnter: (bool) ($data['start_conference_on_enter'] ?? false),
             endConferenceOnExit: (bool) ($data['end_conference_on_exit'] ?? false),
             status: (string) ($data['status'] ?? ''),
