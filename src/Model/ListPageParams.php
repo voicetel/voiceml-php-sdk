@@ -12,6 +12,7 @@ final class ListPageParams
     public function __construct(
         public readonly ?int $page = null,
         public readonly ?int $pageSize = null,
+        public readonly ?string $pageToken = null,
     ) {
     }
 
@@ -23,6 +24,7 @@ final class ListPageParams
         return [
             'Page' => $this->page,
             'PageSize' => $this->pageSize,
+            'PageToken' => $this->pageToken,
         ];
     }
 }

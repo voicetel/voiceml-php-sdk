@@ -15,6 +15,7 @@ final class ListParticipantsParams
         public readonly ?bool $coaching = null,
         public readonly ?int $page = null,
         public readonly ?int $pageSize = null,
+        public readonly ?string $pageToken = null,
     ) {
     }
 
@@ -29,6 +30,7 @@ final class ListParticipantsParams
             'Coaching' => $this->coaching,
             'Page' => $this->page,
             'PageSize' => $this->pageSize,
+            'PageToken' => $this->pageToken,
         ];
     }
 }

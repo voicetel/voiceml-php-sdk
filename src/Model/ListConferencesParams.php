@@ -14,6 +14,7 @@ final class ListConferencesParams
         public readonly ?string $status = null,
         public readonly ?int $page = null,
         public readonly ?int $pageSize = null,
+        public readonly ?string $pageToken = null,
     ) {
     }
 
@@ -27,6 +28,7 @@ final class ListConferencesParams
             'Status' => $this->status,
             'Page' => $this->page,
             'PageSize' => $this->pageSize,
+            'PageToken' => $this->pageToken,
         ];
     }
 }

@@ -13,6 +13,7 @@ final class ListApplicationsParams
         public readonly ?string $friendlyName = null,
         public readonly ?int $page = null,
         public readonly ?int $pageSize = null,
+        public readonly ?string $pageToken = null,
     ) {
     }
 
@@ -25,6 +26,7 @@ final class ListApplicationsParams
             'FriendlyName' => $this->friendlyName,
             'Page' => $this->page,
             'PageSize' => $this->pageSize,
+            'PageToken' => $this->pageToken,
         ];
     }
 }

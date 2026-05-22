@@ -24,6 +24,7 @@ final class ListCallsParams
         public readonly ?string $endTimeGt = null,
         public readonly ?int $page = null,
         public readonly ?int $pageSize = null,
+        public readonly ?string $pageToken = null,
     ) {
     }
 
@@ -47,6 +48,7 @@ final class ListCallsParams
             'EndTime>' => $this->endTimeGt,
             'Page' => $this->page,
             'PageSize' => $this->pageSize,
+            'PageToken' => $this->pageToken,
         ];
     }
 }

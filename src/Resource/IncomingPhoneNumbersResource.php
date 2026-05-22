@@ -27,6 +27,7 @@ final class IncomingPhoneNumbersResource extends Resource
         ?string $phoneNumber = null,
         ?int $page = null,
         ?int $pageSize = null,
+        ?string $pageToken = null,
     ): IncomingPhoneNumberList {
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request(
@@ -36,6 +37,7 @@ final class IncomingPhoneNumbersResource extends Resource
                 'PhoneNumber' => $phoneNumber,
                 'Page' => $page,
                 'PageSize' => $pageSize,
+                'PageToken' => $pageToken,
             ],
         );
         return IncomingPhoneNumberList::fromArray($raw);

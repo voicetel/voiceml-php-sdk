@@ -7,6 +7,7 @@ namespace VoiceML\Resource;
 use VoiceML\Model\Conference;
 use VoiceML\Model\ConferenceList;
 use VoiceML\Model\EndConferenceRequest;
+use VoiceML\Model\ListCallRecordingsParams;
 use VoiceML\Model\ListConferencesParams;
 use VoiceML\Model\ListParticipantsParams;
 use VoiceML\Model\Participant;
@@ -91,10 +92,11 @@ final class ConferencesResource extends Resource
 
     // --- Recordings ---
 
-    public function listRecordings(string $conferenceSid): RecordingList
+    public function listRecordings(string $conferenceSid, ?ListCallRecordingsParams $params = null): RecordingList
     {
+        $query = ($params ?? new ListCallRecordingsParams())->toQuery();
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Conferences', $conferenceSid, 'Recordings'));
+        $raw = $this->transport->request('GET', $this->path('Conferences', $conferenceSid, 'Recordings'), $query);
         return RecordingList::fromArray($raw);
     }
 }

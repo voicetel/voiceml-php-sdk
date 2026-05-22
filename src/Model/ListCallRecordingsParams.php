@@ -5,16 +5,14 @@ declare(strict_types=1);
 namespace VoiceML\Model;
 
 /**
- * Query params for recording list endpoints.
+ * Query params for `GET /Calls/{sid}/Recordings` and `GET /Conferences/{sid}/Recordings`.
  */
-final class ListRecordingsParams
+final class ListCallRecordingsParams
 {
     public function __construct(
         public readonly ?string $dateCreated = null,
         public readonly ?string $dateCreatedLt = null,
         public readonly ?string $dateCreatedGt = null,
-        public readonly ?string $callSid = null,
-        public readonly ?string $conferenceSid = null,
         public readonly ?int $page = null,
         public readonly ?int $pageSize = null,
         public readonly ?string $pageToken = null,
@@ -30,8 +28,6 @@ final class ListRecordingsParams
             'DateCreated' => $this->dateCreated,
             'DateCreated<' => $this->dateCreatedLt,
             'DateCreated>' => $this->dateCreatedGt,
-            'CallSid' => $this->callSid,
-            'ConferenceSid' => $this->conferenceSid,
             'Page' => $this->page,
             'PageSize' => $this->pageSize,
             'PageToken' => $this->pageToken,

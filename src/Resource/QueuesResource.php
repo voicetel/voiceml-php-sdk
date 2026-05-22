@@ -25,10 +25,11 @@ final class QueuesResource extends Resource
         return Queue::fromArray($raw);
     }
 
-    public function list(): QueueList
+    public function list(?ListPageParams $params = null): QueueList
     {
+        $query = ($params ?? new ListPageParams())->toQuery();
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Queues'));
+        $raw = $this->transport->request('GET', $this->path('Queues'), $query);
         return QueueList::fromArray($raw);
     }
 

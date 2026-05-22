@@ -51,6 +51,7 @@ final class CallsResource extends Resource
         ?string $endTimeGt = null,
         ?int $page = null,
         ?int $pageSize = null,
+        ?string $pageToken = null,
     ): CallList {
         $params = new ListCallsParams(
             to: $to,
@@ -67,6 +68,7 @@ final class CallsResource extends Resource
             endTimeGt: $endTimeGt,
             page: $page,
             pageSize: $pageSize,
+            pageToken: $pageToken,
         );
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request(

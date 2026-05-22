@@ -773,9 +773,16 @@ final class SmokeTest extends TestCase
         self::assertSame('2025-06-01', $query['EndTime>']);
     }
 
-    public function testVersionIs063(): void
+    public function testListCallsParamsEmitsPageToken(): void
     {
-        self::assertSame('0.6.3', Version::VERSION);
+        $query = (new ListCallsParams(pageToken: 'cursor-abc123'))->toQuery();
+
+        self::assertSame('cursor-abc123', $query['PageToken']);
+    }
+
+    public function testVersionIs064(): void
+    {
+        self::assertSame('0.6.4', Version::VERSION);
     }
 
     /**
