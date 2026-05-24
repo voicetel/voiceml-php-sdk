@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace VoiceML\Model;
 
 /**
- * A Twilio-shape Call resource.
+ * A Twilio-compatible Call resource.
  *
  * Field names mirror the wire shape (snake_case JSON → camelCase PHP via the factory).
  * Status and direction are parsed into enums when the wire value matches a known case;

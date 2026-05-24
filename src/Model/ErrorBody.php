@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace VoiceML\Model;
 
 /**
- * Twilio-shape error body — what the server returns for non-2xx responses.
+ * Twilio-compatible error body — what the server returns for non-2xx responses.
  *
  * The transport wraps this into a {@see \VoiceML\Exception\ApiException} (or a subclass) with
  * the parsed payload exposed on `body`. Code is the numeric Twilio code (e.g. 21211).

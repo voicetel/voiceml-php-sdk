@@ -6,14 +6,17 @@ namespace VoiceML\Resource;
 
 use VoiceML\Model\Conference;
 use VoiceML\Model\ConferenceList;
+use VoiceML\Model\CreateParticipantRequest;
 use VoiceML\Model\EndConferenceRequest;
 use VoiceML\Model\ListCallRecordingsParams;
 use VoiceML\Model\ListConferencesParams;
 use VoiceML\Model\ListParticipantsParams;
 use VoiceML\Model\Participant;
 use VoiceML\Model\ParticipantList;
+use VoiceML\Model\Recording;
 use VoiceML\Model\RecordingList;
 use VoiceML\Model\UpdateParticipantRequest;
+use VoiceML\Model\UpdateRecordingRequest;
 
 /**
  * `/Conferences` and `/Conferences/{sid}/Participants`, `/Conferences/{sid}/Recordings`.
@@ -90,6 +93,18 @@ final class ConferencesResource extends Resource
         );
     }
 
+    public function createParticipant(string $conferenceSid, CreateParticipantRequest $body): Participant
+    {
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->request(
+            'POST',
+            $this->path('Conferences', $conferenceSid, 'Participants'),
+            null,
+            $body->toForm(),
+        );
+        return Participant::fromArray($raw);
+    }
+
     // --- Recordings ---
 
     public function listRecordings(string $conferenceSid, ?ListCallRecordingsParams $params = null): RecordingList
@@ -98,5 +113,38 @@ final class ConferencesResource extends Resource
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request('GET', $this->path('Conferences', $conferenceSid, 'Recordings'), $query);
         return RecordingList::fromArray($raw);
+    }
+
+    public function getRecording(string $conferenceSid, string $recordingSid): Recording
+    {
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->request(
+            'GET',
+            $this->path('Conferences', $conferenceSid, 'Recordings', $recordingSid),
+        );
+        return Recording::fromArray($raw);
+    }
+
+    public function updateRecording(
+        string $conferenceSid,
+        string $recordingSid,
+        UpdateRecordingRequest $body,
+    ): Recording {
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->request(
+            'POST',
+            $this->path('Conferences', $conferenceSid, 'Recordings', $recordingSid),
+            null,
+            $body->toForm(),
+        );
+        return Recording::fromArray($raw);
+    }
+
+    public function deleteRecording(string $conferenceSid, string $recordingSid): void
+    {
+        $this->transport->request(
+            'DELETE',
+            $this->path('Conferences', $conferenceSid, 'Recordings', $recordingSid),
+        );
     }
 }

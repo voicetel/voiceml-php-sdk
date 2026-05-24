@@ -87,7 +87,7 @@ All errors extend `VoiceML\Exception\VoiceMLException` (which extends `RuntimeEx
 | 5xx  | `VoiceML\Exception\ServerException`                      |
 | any  | `VoiceML\Exception\ApiException` (base for the above)    |
 
-Each `ApiException` carries the parsed Twilio-shape error body (`code`, `message`, `more_info`, `status`) on `->errorCode`, `->getMessage()`, `->getMoreInfo()` / `->moreInfo`, and `->body`.
+Each `ApiException` carries the parsed Twilio-compatible error body (`code`, `message`, `more_info`, `status`) on `->errorCode`, `->getMessage()`, `->getMoreInfo()` / `->moreInfo`, and `->body`.
 
 ### Twilio `authToken` alias
 
@@ -112,7 +112,7 @@ If the recording is gone (no local file and no S3 key), `GoneException` is raise
 
 ## Pagination
 
-`Calls`, `Conferences`, `Queues`, etc. return Twilio-shape page envelopes. Walk pages manually with `nextPageUri`, or use the helper for `/Calls`:
+`Calls`, `Conferences`, `Queues`, etc. return Twilio-compatible page envelopes. Walk pages manually with `nextPageUri`, or use the helper for `/Calls`:
 
 ```php
 foreach ($client->calls->iterate(status: 'completed') as $call) {

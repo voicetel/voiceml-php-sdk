@@ -780,9 +780,70 @@ final class SmokeTest extends TestCase
         self::assertSame('cursor-abc123', $query['PageToken']);
     }
 
-    public function testVersionIs064(): void
+    public function testVersionIs066(): void
     {
-        self::assertSame('0.6.4', Version::VERSION);
+        self::assertSame('0.6.6', Version::VERSION);
+    }
+
+    public function testCreateParticipantSendsFromAndTo(): void
+    {
+        $confSid = 'CF' . str_repeat('f', 32);
+        $bag = $this->makeClient([
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'call_sid' => 'CA' . str_repeat('f', 32),
+                'conference_sid' => $confSid,
+                'account_sid' => self::ACCOUNT_SID,
+                'status' => 'queued',
+                'api_version' => '2010-04-01',
+                'uri' => '/x',
+            ])),
+        ]);
+
+        $bag['client']->conferences->createParticipant($confSid, new \VoiceML\Model\CreateParticipantRequest(
+            from: '+18005550000',
+            to: '+18005551234',
+        ));
+
+        self::assertCount(1, $bag['history']);
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('POST', $request->getMethod());
+        self::assertStringContainsString("/Conferences/{$confSid}/Participants.json", (string) $request->getUri());
+        parse_str((string) $request->getBody(), $form);
+        self::assertSame('+18005550000', $form['From'] ?? null);
+        self::assertSame('+18005551234', $form['To'] ?? null);
+    }
+
+    public function testListCallNotificationsSendsLogAndMessageDateFilters(): void
+    {
+        $callSid = 'CA' . str_repeat('f', 32);
+        $bag = $this->makeClient([
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'notifications' => [],
+                'page' => 0,
+                'page_size' => 50,
+                'total' => 0,
+            ])),
+        ]);
+
+        $bag['client']->calls->listNotifications($callSid, new \VoiceML\Model\ListNotificationsParams(
+            log: 1,
+            messageDate: '2026-05-01',
+            messageDateLt: '2026-05-02',
+            messageDateGt: '2026-04-30',
+        ));
+
+        self::assertCount(1, $bag['history']);
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('GET', $request->getMethod());
+        $uri = (string) $request->getUri();
+        self::assertStringContainsString("/Calls/{$callSid}/Notifications.json", $uri);
+        parse_str(parse_url($uri, PHP_URL_QUERY) ?? '', $query);
+        self::assertSame('1', $query['Log'] ?? null);
+        self::assertSame('2026-05-01', $query['MessageDate'] ?? null);
+        self::assertSame('2026-05-02', $query['MessageDate<'] ?? null);
+        self::assertSame('2026-04-30', $query['MessageDate>'] ?? null);
     }
 
     /**

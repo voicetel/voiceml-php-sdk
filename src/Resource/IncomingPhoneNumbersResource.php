@@ -7,6 +7,7 @@ namespace VoiceML\Resource;
 use VoiceML\Model\CreateIncomingPhoneNumberRequest;
 use VoiceML\Model\IncomingPhoneNumber;
 use VoiceML\Model\IncomingPhoneNumberList;
+use VoiceML\Model\ListTypedIncomingPhoneNumbersParams;
 use VoiceML\Model\UpdateIncomingPhoneNumberRequest;
 
 /**
@@ -77,5 +78,55 @@ final class IncomingPhoneNumbersResource extends Resource
     public function delete(string $sid): void
     {
         $this->transport->request('DELETE', $this->path('IncomingPhoneNumbers', $sid));
+    }
+
+    public function listLocal(?ListTypedIncomingPhoneNumbersParams $params = null): IncomingPhoneNumberList
+    {
+        return $this->listTyped('Local', $params);
+    }
+
+    public function createLocal(CreateIncomingPhoneNumberRequest $body): IncomingPhoneNumber
+    {
+        return $this->createTyped('Local', $body);
+    }
+
+    public function listMobile(?ListTypedIncomingPhoneNumbersParams $params = null): IncomingPhoneNumberList
+    {
+        return $this->listTyped('Mobile', $params);
+    }
+
+    public function createMobile(CreateIncomingPhoneNumberRequest $body): IncomingPhoneNumber
+    {
+        return $this->createTyped('Mobile', $body);
+    }
+
+    public function listTollFree(?ListTypedIncomingPhoneNumbersParams $params = null): IncomingPhoneNumberList
+    {
+        return $this->listTyped('TollFree', $params);
+    }
+
+    public function createTollFree(CreateIncomingPhoneNumberRequest $body): IncomingPhoneNumber
+    {
+        return $this->createTyped('TollFree', $body);
+    }
+
+    private function listTyped(string $kind, ?ListTypedIncomingPhoneNumbersParams $params): IncomingPhoneNumberList
+    {
+        $query = ($params ?? new ListTypedIncomingPhoneNumbersParams())->toQuery();
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->request('GET', $this->path('IncomingPhoneNumbers', $kind), $query);
+        return IncomingPhoneNumberList::fromArray($raw);
+    }
+
+    private function createTyped(string $kind, CreateIncomingPhoneNumberRequest $body): IncomingPhoneNumber
+    {
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->request(
+            'POST',
+            $this->path('IncomingPhoneNumbers', $kind),
+            null,
+            $body->toForm(),
+        );
+        return IncomingPhoneNumber::fromArray($raw);
     }
 }

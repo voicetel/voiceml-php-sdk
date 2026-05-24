@@ -9,7 +9,7 @@ use RuntimeException;
 /**
  * A DID assigned to the authenticated tenant.
  *
- * Twilio-shape: {@see $sid} is the canonical `PN`-prefixed opaque identifier (34 chars) and
+ * Twilio-compatible: {@see $sid} is the canonical `PN`-prefixed opaque identifier (34 chars) and
  * {@see $phoneNumber} carries the E.164 form. They are distinct fields — never substitute
  * one for the other in URLs.
  *

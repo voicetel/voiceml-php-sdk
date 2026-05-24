@@ -10,6 +10,7 @@ use VoiceML\Model\CallTranscription;
 use VoiceML\Model\CreateCallRequest;
 use VoiceML\Model\EventsList;
 use VoiceML\Model\ListCallsParams;
+use VoiceML\Model\ListNotificationsParams;
 use VoiceML\Model\ListPageParams;
 use VoiceML\Model\ListRecordingsParams;
 use VoiceML\Model\NotificationsList;
@@ -279,12 +280,25 @@ final class CallsResource extends Resource
 
     // --- Notifications / Events (compat stubs) ---
 
-    public function listNotifications(string $callSid, ?ListPageParams $params = null): NotificationsList
+    public function listNotifications(string $callSid, ?ListNotificationsParams $params = null): NotificationsList
     {
-        $query = ($params ?? new ListPageParams())->toQuery();
+        $query = ($params ?? new ListNotificationsParams())->toQuery();
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Notifications'), $query);
         return NotificationsList::fromArray($raw);
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    public function getNotification(string $callSid, string $notificationSid): array
+    {
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->request(
+            'GET',
+            $this->path('Calls', $callSid, 'Notifications', $notificationSid),
+        );
+        return $raw;
     }
 
     public function listEvents(string $callSid, ?ListPageParams $params = null): EventsList

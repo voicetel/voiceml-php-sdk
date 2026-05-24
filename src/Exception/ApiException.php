@@ -10,7 +10,7 @@ use Throwable;
  * Raised when the API returns a non-2xx response.
  *
  * Subclasses cover specific status families; catch this class to handle them all.
- * The Twilio-shape error body (`{code, message, more_info, status}`) is parsed into
+ * The Twilio-compatible error body (`{code, message, more_info, status}`) is parsed into
  * `code` / `message` / `moreInfo` when present, with the raw payload exposed on `body`.
  *
  * `moreInfo` is the docs URL the server includes for each error code — it points at the

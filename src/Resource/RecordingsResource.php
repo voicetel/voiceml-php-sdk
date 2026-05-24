@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace VoiceML\Resource;
 
+use VoiceML\Model\GetRecordingParams;
 use VoiceML\Model\ListRecordingsParams;
 use VoiceML\Model\Recording;
 use VoiceML\Model\RecordingAudio;
@@ -25,10 +26,11 @@ final class RecordingsResource extends Resource
         return RecordingList::fromArray($raw);
     }
 
-    public function get(string $recordingSid): Recording
+    public function get(string $recordingSid, ?GetRecordingParams $params = null): Recording
     {
+        $query = $params !== null ? $params->toQuery() : null;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Recordings', $recordingSid));
+        $raw = $this->transport->request('GET', $this->path('Recordings', $recordingSid), $query);
         return Recording::fromArray($raw);
     }
 

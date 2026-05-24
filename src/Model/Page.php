@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace VoiceML\Model;
 
 /**
- * Twilio-shape pagination envelope.
+ * Twilio-compatible pagination envelope.
  *
  * Field names match the wire shape exactly. Subclasses (CallList, ConferenceList, ...) add the
  * concrete resource-list property (`calls`, `conferences`, ...) and call `Page::populate()` from

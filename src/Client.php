@@ -11,6 +11,7 @@ use VoiceML\Resource\CallsResource;
 use VoiceML\Resource\ConferencesResource;
 use VoiceML\Resource\DiagnosticsResource;
 use VoiceML\Resource\IncomingPhoneNumbersResource;
+use VoiceML\Resource\NotificationsResource;
 use VoiceML\Resource\QueuesResource;
 use VoiceML\Resource\RecordingsResource;
 
@@ -44,6 +45,7 @@ final class Client
     public readonly ApplicationsResource $applications;
     public readonly RecordingsResource $recordings;
     public readonly IncomingPhoneNumbersResource $incomingPhoneNumbers;
+    public readonly NotificationsResource $notifications;
     public readonly DiagnosticsResource $diagnostics;
 
     private readonly Transport $transport;
@@ -86,6 +88,7 @@ final class Client
         $this->applications = new ApplicationsResource($this->transport);
         $this->recordings = new RecordingsResource($this->transport);
         $this->incomingPhoneNumbers = new IncomingPhoneNumbersResource($this->transport);
+        $this->notifications = new NotificationsResource($this->transport);
         $this->diagnostics = new DiagnosticsResource($this->transport);
     }
 
