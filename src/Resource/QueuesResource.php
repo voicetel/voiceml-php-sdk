@@ -99,4 +99,27 @@ final class QueuesResource extends Resource
         );
         return QueueMember::fromArray($raw);
     }
+
+    /**
+     * Generator that lazily walks all pages of `/Queues`, yielding one Queue at a time.
+     *
+     * @return \Generator<int, Queue>
+     */
+    public function iterate(?int $pageSize = null): \Generator
+    {
+        $page = 0;
+        while (true) {
+            $chunk = $this->list(new ListPageParams(
+                page: $page,
+                pageSize: $pageSize,
+            ));
+            foreach ($chunk->queues as $queue) {
+                yield $queue;
+            }
+            if (($chunk->nextPageUri ?? null) === null || $chunk->queues === []) {
+                return;
+            }
+            $page++;
+        }
+    }
 }

@@ -147,4 +147,44 @@ final class ConferencesResource extends Resource
             $this->path('Conferences', $conferenceSid, 'Recordings', $recordingSid),
         );
     }
+
+    /**
+     * Generator that lazily walks all pages of `/Conferences`, yielding one Conference at a time.
+     *
+     * @return \Generator<int, Conference>
+     */
+    public function iterate(
+        ?string $friendlyName = null,
+        ?string $status = null,
+        ?string $dateCreated = null,
+        ?string $dateCreatedLt = null,
+        ?string $dateCreatedGt = null,
+        ?string $dateUpdated = null,
+        ?string $dateUpdatedLt = null,
+        ?string $dateUpdatedGt = null,
+        ?int $pageSize = null,
+    ): \Generator {
+        $page = 0;
+        while (true) {
+            $chunk = $this->list(new ListConferencesParams(
+                friendlyName: $friendlyName,
+                status: $status,
+                dateCreated: $dateCreated,
+                dateCreatedLt: $dateCreatedLt,
+                dateCreatedGt: $dateCreatedGt,
+                dateUpdated: $dateUpdated,
+                dateUpdatedLt: $dateUpdatedLt,
+                dateUpdatedGt: $dateUpdatedGt,
+                page: $page,
+                pageSize: $pageSize,
+            ));
+            foreach ($chunk->conferences as $conference) {
+                yield $conference;
+            }
+            if (($chunk->nextPageUri ?? null) === null || $chunk->conferences === []) {
+                return;
+            }
+            $page++;
+        }
+    }
 }

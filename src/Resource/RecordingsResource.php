@@ -75,4 +75,40 @@ final class RecordingsResource extends Resource
     {
         $this->transport->request('DELETE', $this->path('Recordings', $recordingSid));
     }
+
+    /**
+     * Generator that lazily walks all pages of `/Recordings`, yielding one Recording at a time.
+     *
+     * @return \Generator<int, Recording>
+     */
+    public function iterate(
+        ?string $dateCreated = null,
+        ?string $dateCreatedLt = null,
+        ?string $dateCreatedGt = null,
+        ?string $callSid = null,
+        ?string $conferenceSid = null,
+        ?bool $includeSoftDeleted = null,
+        ?int $pageSize = null,
+    ): \Generator {
+        $page = 0;
+        while (true) {
+            $chunk = $this->list(new ListRecordingsParams(
+                dateCreated: $dateCreated,
+                dateCreatedLt: $dateCreatedLt,
+                dateCreatedGt: $dateCreatedGt,
+                callSid: $callSid,
+                conferenceSid: $conferenceSid,
+                includeSoftDeleted: $includeSoftDeleted,
+                page: $page,
+                pageSize: $pageSize,
+            ));
+            foreach ($chunk->recordings as $recording) {
+                yield $recording;
+            }
+            if (($chunk->nextPageUri ?? null) === null || $chunk->recordings === []) {
+                return;
+            }
+            $page++;
+        }
+    }
 }

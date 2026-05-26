@@ -29,4 +29,36 @@ final class NotificationsResource extends Resource
         $raw = $this->transport->request('GET', $this->path('Notifications', $notificationSid));
         return $raw;
     }
+
+    /**
+     * Generator that lazily walks all pages of `/Notifications`, yielding one item at a time.
+     *
+     * @return \Generator<int, mixed>
+     */
+    public function iterate(
+        ?int $log = null,
+        ?string $messageDate = null,
+        ?string $messageDateLt = null,
+        ?string $messageDateGt = null,
+        ?int $pageSize = null,
+    ): \Generator {
+        $page = 0;
+        while (true) {
+            $chunk = $this->list(new ListNotificationsParams(
+                page: $page,
+                pageSize: $pageSize,
+                log: $log,
+                messageDate: $messageDate,
+                messageDateLt: $messageDateLt,
+                messageDateGt: $messageDateGt,
+            ));
+            foreach ($chunk->notifications as $notification) {
+                yield $notification;
+            }
+            if ($chunk->notifications === []) {
+                return;
+            }
+            $page++;
+        }
+    }
 }

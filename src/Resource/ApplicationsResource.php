@@ -48,4 +48,28 @@ final class ApplicationsResource extends Resource
     {
         $this->transport->request('DELETE', $this->path('Applications', $applicationSid));
     }
+
+    /**
+     * Generator that lazily walks all pages of `/Applications`, yielding one Application at a time.
+     *
+     * @return \Generator<int, Application>
+     */
+    public function iterate(?string $friendlyName = null, ?int $pageSize = null): \Generator
+    {
+        $page = 0;
+        while (true) {
+            $chunk = $this->list(new ListApplicationsParams(
+                friendlyName: $friendlyName,
+                page: $page,
+                pageSize: $pageSize,
+            ));
+            foreach ($chunk->applications as $application) {
+                yield $application;
+            }
+            if (($chunk->nextPageUri ?? null) === null || $chunk->applications === []) {
+                return;
+            }
+            $page++;
+        }
+    }
 }

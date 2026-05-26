@@ -8,8 +8,8 @@ namespace VoiceML\Model;
  * A Twilio-compatible Call resource.
  *
  * Field names mirror the wire shape (snake_case JSON → camelCase PHP via the factory).
- * Status and direction are parsed into enums when the wire value matches a known case;
- * unknown values land in {@see $statusRaw} / {@see $directionRaw}.
+ * Status, direction, and answeredBy are parsed into enums when the wire value matches a known case;
+ * unknown values land in {@see $statusRaw} / {@see $directionRaw} / {@see $answeredByRaw}.
  */
 final class Call implements Model
 {
@@ -34,7 +34,8 @@ final class Call implements Model
         public readonly ?string $parentCallSid = null,
         public readonly ?string $callerName = null,
         public readonly ?string $forwardedFrom = null,
-        public readonly ?string $answeredBy = null,
+        public readonly ?AnsweredBy $answeredBy = null,
+        public readonly ?string $answeredByRaw = null,
         public readonly ?string $startTime = null,
         public readonly ?string $endTime = null,
         public readonly ?string $duration = null,
@@ -56,6 +57,7 @@ final class Call implements Model
     {
         $statusRaw = (string) ($data['status'] ?? '');
         $directionRaw = (string) ($data['direction'] ?? '');
+        $answeredByRaw = isset($data['answered_by']) ? (string) $data['answered_by'] : null;
 
         /** @var array<string,string>|null $subresourceUris */
         $subresourceUris = isset($data['subresource_uris']) && is_array($data['subresource_uris'])
@@ -80,7 +82,8 @@ final class Call implements Model
             parentCallSid: isset($data['parent_call_sid']) ? (string) $data['parent_call_sid'] : null,
             callerName: isset($data['caller_name']) ? (string) $data['caller_name'] : null,
             forwardedFrom: isset($data['forwarded_from']) ? (string) $data['forwarded_from'] : null,
-            answeredBy: isset($data['answered_by']) ? (string) $data['answered_by'] : null,
+            answeredBy: $answeredByRaw !== null ? AnsweredBy::tryFrom($answeredByRaw) : null,
+            answeredByRaw: $answeredByRaw,
             startTime: isset($data['start_time']) ? (string) $data['start_time'] : null,
             endTime: isset($data['end_time']) ? (string) $data['end_time'] : null,
             duration: isset($data['duration']) ? (string) $data['duration'] : null,

@@ -846,6 +846,175 @@ final class SmokeTest extends TestCase
         self::assertSame('2026-04-30', $query['MessageDate>'] ?? null);
     }
 
+    // ---------------------------------------------------------------------
+    // Pagination — iterate() generator tests
+    // ---------------------------------------------------------------------
+
+    public function testCallsIterateWalksTwoPages(): void
+    {
+        $bag = $this->makeClient([
+            // Page 0: 2 calls + nextPageUri present.
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'calls' => [
+                    ['sid' => 'CA00000000000000000000000000000001', 'account_sid' => self::ACCOUNT_SID, 'api_version' => '2010-04-01', 'status' => 'completed', 'direction' => 'outbound-api', 'date_created' => 'now', 'date_updated' => 'now', 'uri' => '/uri'],
+                    ['sid' => 'CA00000000000000000000000000000002', 'account_sid' => self::ACCOUNT_SID, 'api_version' => '2010-04-01', 'status' => 'completed', 'direction' => 'outbound-api', 'date_created' => 'now', 'date_updated' => 'now', 'uri' => '/uri'],
+                ],
+                'page' => 0,
+                'page_size' => 2,
+                'next_page_uri' => '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/Calls.json?Page=1&PageSize=2',
+            ])),
+            // Page 1: 1 call + null nextPageUri.
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'calls' => [
+                    ['sid' => 'CA00000000000000000000000000000003', 'account_sid' => self::ACCOUNT_SID, 'api_version' => '2010-04-01', 'status' => 'completed', 'direction' => 'outbound-api', 'date_created' => 'now', 'date_updated' => 'now', 'uri' => '/uri'],
+                ],
+                'page' => 1,
+                'page_size' => 2,
+            ])),
+        ]);
+
+        $collected = [];
+        foreach ($bag['client']->calls->iterate(pageSize: 2) as $call) {
+            $collected[] = $call->sid;
+        }
+
+        self::assertCount(3, $collected);
+        self::assertSame('CA00000000000000000000000000000001', $collected[0]);
+        self::assertSame('CA00000000000000000000000000000002', $collected[1]);
+        self::assertSame('CA00000000000000000000000000000003', $collected[2]);
+        // Two HTTP requests: page 0 and page 1.
+        self::assertCount(2, $bag['history']);
+    }
+
+    public function testConferencesIterateWalksTwoPages(): void
+    {
+        $bag = $this->makeClient([
+            // Page 0: 2 conferences + nextPageUri present.
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'conferences' => [
+                    ['sid' => 'CF00000000000000000000000000000001', 'account_sid' => self::ACCOUNT_SID, 'friendly_name' => 'Room1', 'status' => 'in-progress', 'api_version' => '2010-04-01', 'uri' => '/uri'],
+                    ['sid' => 'CF00000000000000000000000000000002', 'account_sid' => self::ACCOUNT_SID, 'friendly_name' => 'Room2', 'status' => 'in-progress', 'api_version' => '2010-04-01', 'uri' => '/uri'],
+                ],
+                'page' => 0,
+                'page_size' => 2,
+                'next_page_uri' => '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/Conferences.json?Page=1&PageSize=2',
+            ])),
+            // Page 1: 1 conference + no nextPageUri.
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'conferences' => [
+                    ['sid' => 'CF00000000000000000000000000000003', 'account_sid' => self::ACCOUNT_SID, 'friendly_name' => 'Room3', 'status' => 'completed', 'api_version' => '2010-04-01', 'uri' => '/uri'],
+                ],
+                'page' => 1,
+                'page_size' => 2,
+            ])),
+        ]);
+
+        $collected = [];
+        foreach ($bag['client']->conferences->iterate(pageSize: 2) as $conf) {
+            $collected[] = $conf->sid;
+        }
+
+        self::assertCount(3, $collected);
+        self::assertSame('CF00000000000000000000000000000001', $collected[0]);
+        self::assertSame('CF00000000000000000000000000000002', $collected[1]);
+        self::assertSame('CF00000000000000000000000000000003', $collected[2]);
+        self::assertCount(2, $bag['history']);
+    }
+
+    public function testRecordingsIterateWalksTwoPages(): void
+    {
+        $bag = $this->makeClient([
+            // Page 0: 2 recordings + nextPageUri present.
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'recordings' => [
+                    ['sid' => 'RE00000000000000000000000000000001', 'account_sid' => self::ACCOUNT_SID, 'call_sid' => self::CALL_SID, 'status' => 'completed'],
+                    ['sid' => 'RE00000000000000000000000000000002', 'account_sid' => self::ACCOUNT_SID, 'call_sid' => self::CALL_SID, 'status' => 'completed'],
+                ],
+                'page' => 0,
+                'page_size' => 2,
+                'next_page_uri' => '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/Recordings.json?Page=1&PageSize=2',
+            ])),
+            // Page 1: 1 recording + no nextPageUri.
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'recordings' => [
+                    ['sid' => 'RE00000000000000000000000000000003', 'account_sid' => self::ACCOUNT_SID, 'call_sid' => self::CALL_SID, 'status' => 'completed'],
+                ],
+                'page' => 1,
+                'page_size' => 2,
+            ])),
+        ]);
+
+        $collected = [];
+        foreach ($bag['client']->recordings->iterate(pageSize: 2) as $rec) {
+            $collected[] = $rec->sid;
+        }
+
+        self::assertCount(3, $collected);
+        self::assertSame('RE00000000000000000000000000000001', $collected[0]);
+        self::assertSame('RE00000000000000000000000000000002', $collected[1]);
+        self::assertSame('RE00000000000000000000000000000003', $collected[2]);
+        self::assertCount(2, $bag['history']);
+    }
+
+    public function testQueuesIterateWalksTwoPages(): void
+    {
+        $bag = $this->makeClient([
+            // Page 0: 2 queues + nextPageUri present.
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'queues' => [
+                    ['sid' => 'QU00000000000000000000000000000001', 'account_sid' => self::ACCOUNT_SID, 'friendly_name' => 'Sales', 'current_size' => 0, 'max_size' => 100, 'average_wait_time' => 0, 'date_created' => 'now', 'date_updated' => 'now', 'uri' => '/uri'],
+                    ['sid' => 'QU00000000000000000000000000000002', 'account_sid' => self::ACCOUNT_SID, 'friendly_name' => 'Support', 'current_size' => 5, 'max_size' => 200, 'average_wait_time' => 30, 'date_created' => 'now', 'date_updated' => 'now', 'uri' => '/uri'],
+                ],
+                'page' => 0,
+                'page_size' => 2,
+                'next_page_uri' => '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/Queues.json?Page=1&PageSize=2',
+            ])),
+            // Page 1: 1 queue + no nextPageUri.
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'queues' => [
+                    ['sid' => 'QU00000000000000000000000000000003', 'account_sid' => self::ACCOUNT_SID, 'friendly_name' => 'Billing', 'current_size' => 2, 'max_size' => 50, 'average_wait_time' => 15, 'date_created' => 'now', 'date_updated' => 'now', 'uri' => '/uri'],
+                ],
+                'page' => 1,
+                'page_size' => 2,
+            ])),
+        ]);
+
+        $collected = [];
+        foreach ($bag['client']->queues->iterate(pageSize: 2) as $queue) {
+            $collected[] = $queue->sid;
+        }
+
+        self::assertCount(3, $collected);
+        self::assertSame('QU00000000000000000000000000000001', $collected[0]);
+        self::assertSame('QU00000000000000000000000000000002', $collected[1]);
+        self::assertSame('QU00000000000000000000000000000003', $collected[2]);
+        self::assertCount(2, $bag['history']);
+    }
+
+    public function testCallsIterateSinglePageStopsWithoutNextPageUri(): void
+    {
+        $bag = $this->makeClient([
+            // Single page: 1 call + no nextPageUri.
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'calls' => [
+                    ['sid' => 'CA00000000000000000000000000000099', 'account_sid' => self::ACCOUNT_SID, 'api_version' => '2010-04-01', 'status' => 'completed', 'direction' => 'inbound', 'date_created' => 'now', 'date_updated' => 'now', 'uri' => '/uri'],
+                ],
+                'page' => 0,
+                'page_size' => 50,
+            ])),
+        ]);
+
+        $collected = [];
+        foreach ($bag['client']->calls->iterate() as $call) {
+            $collected[] = $call->sid;
+        }
+
+        self::assertCount(1, $collected);
+        self::assertSame('CA00000000000000000000000000000099', $collected[0]);
+        // Only one HTTP request — no second page fetched.
+        self::assertCount(1, $bag['history']);
+    }
+
     /**
      * Variant of {@see makeClient()} that lets us pass authToken: rather than apiKey:.
      *

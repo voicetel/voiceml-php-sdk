@@ -129,4 +129,31 @@ final class IncomingPhoneNumbersResource extends Resource
         );
         return IncomingPhoneNumber::fromArray($raw);
     }
+
+    /**
+     * Generator that lazily walks all pages of `/IncomingPhoneNumbers`, yielding one
+     * IncomingPhoneNumber at a time.
+     *
+     * @return \Generator<int, IncomingPhoneNumber>
+     */
+    public function iterate(
+        ?string $phoneNumber = null,
+        ?int $pageSize = null,
+    ): \Generator {
+        $page = 0;
+        while (true) {
+            $chunk = $this->list(
+                phoneNumber: $phoneNumber,
+                page: $page,
+                pageSize: $pageSize,
+            );
+            foreach ($chunk->incomingPhoneNumbers as $number) {
+                yield $number;
+            }
+            if (($chunk->nextPageUri ?? null) === null || $chunk->incomingPhoneNumbers === []) {
+                return;
+            }
+            $page++;
+        }
+    }
 }

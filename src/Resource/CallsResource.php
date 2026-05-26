@@ -329,10 +329,9 @@ final class CallsResource extends Resource
     }
 
     /**
-     * Walk all pages of `/Calls` and return a list. Use for small-to-medium result sets;
-     * for very large pulls, iterate `list()->nextPageUri` manually.
+     * Generator that lazily walks all pages of `/Calls`, yielding one Call at a time.
      *
-     * @return list<Call>
+     * @return \Generator<int, Call>
      */
     public function iterate(
         ?string $to = null,
@@ -348,9 +347,7 @@ final class CallsResource extends Resource
         ?string $endTimeLt = null,
         ?string $endTimeGt = null,
         ?int $pageSize = null,
-    ): array {
-        /** @var list<Call> $out */
-        $out = [];
+    ): \Generator {
         $page = 0;
         while (true) {
             $chunk = $this->list(
@@ -370,12 +367,12 @@ final class CallsResource extends Resource
                 pageSize: $pageSize,
             );
             foreach ($chunk->calls as $call) {
-                $out[] = $call;
+                yield $call;
             }
             if (($chunk->nextPageUri ?? null) === null || $chunk->calls === []) {
-                return $out;
+                return;
             }
-            $page += 1;
+            $page++;
         }
     }
 }
