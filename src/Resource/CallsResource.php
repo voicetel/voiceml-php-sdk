@@ -6,6 +6,7 @@ namespace VoiceML\Resource;
 
 use VoiceML\Model\Call;
 use VoiceML\Model\CallList;
+use VoiceML\Model\CallPayment;
 use VoiceML\Model\CallTranscription;
 use VoiceML\Model\CreateCallRequest;
 use VoiceML\Model\EventsList;
@@ -18,6 +19,7 @@ use VoiceML\Model\Recording;
 use VoiceML\Model\RecordingList;
 use VoiceML\Model\SiprecList;
 use VoiceML\Model\SiprecSession;
+use VoiceML\Model\StartPaymentRequest;
 use VoiceML\Model\StartRecordingRequest;
 use VoiceML\Model\StartSiprecRequest;
 use VoiceML\Model\StartStreamRequest;
@@ -29,6 +31,7 @@ use VoiceML\Model\Stream;
 use VoiceML\Model\StreamList;
 use VoiceML\Model\TranscriptionList;
 use VoiceML\Model\UpdateCallRequest;
+use VoiceML\Model\UpdatePaymentRequest;
 use VoiceML\Model\UpdateRecordingRequest;
 
 /**
@@ -276,6 +279,47 @@ final class CallsResource extends Resource
             $payload,
         );
         return CallTranscription::fromArray($raw);
+    }
+
+    // --- Payments (`<Pay>` REST companion) ---
+
+    /**
+     * Begin a `<Pay>` session on the live call. Returns the freshly-minted {@see CallPayment}.
+     *
+     * Raises {@see \VoiceML\Exception\PermissionDeniedException} (HTTP 403) when the tenant is
+     * not `pay_enabled` or has no `stripe_secret_key` configured.
+     */
+    public function startPayment(string $callSid, StartPaymentRequest $body): CallPayment
+    {
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->request(
+            'POST',
+            $this->path('Calls', $callSid, 'Payments'),
+            null,
+            $body->toForm(),
+        );
+        return CallPayment::fromArray($raw);
+    }
+
+    /**
+     * Advance or terminate an existing Pay session.
+     *
+     * `Status=complete` captures the collected fields; `Status=cancel` aborts the session.
+     * `Capture=...` tells the runtime which input the user is about to type next.
+     */
+    public function updatePayment(
+        string $callSid,
+        string $paymentSid,
+        UpdatePaymentRequest $body,
+    ): CallPayment {
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->request(
+            'POST',
+            $this->path('Calls', $callSid, 'Payments', $paymentSid),
+            null,
+            $body->toForm(),
+        );
+        return CallPayment::fromArray($raw);
     }
 
     // --- Notifications / Events (compat stubs) ---

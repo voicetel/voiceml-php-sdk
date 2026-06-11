@@ -639,10 +639,26 @@ final class SmokeTest extends TestCase
         ]);
     }
 
-    public function testIncomingPhoneNumberCapabilitiesMissingFlagThrows(): void
+    public function testIncomingPhoneNumberCapabilitiesMissingRequiredFlagThrows(): void
     {
+        // voice/sms/mms are required; omitting any of them is a protocol error.
         $this->expectException(RuntimeException::class);
         IncomingPhoneNumber::fromArray([
+            'sid' => self::PHONE_NUMBER_SID,
+            'account_sid' => self::ACCOUNT_SID,
+            'phone_number' => '+18005551234',
+            'api_version' => '2010-04-01',
+            'uri' => '/uri',
+            'capabilities' => ['voice' => true, 'sms' => false],
+            // mms flag deliberately omitted
+        ]);
+    }
+
+    public function testIncomingPhoneNumberCapabilitiesOmittedFaxYieldsNull(): void
+    {
+        // Twilio's Local/Mobile/TollFree list shapes omit `fax` entirely; the
+        // SDK must accept that and surface `null` (distinct from `false`).
+        $ipn = IncomingPhoneNumber::fromArray([
             'sid' => self::PHONE_NUMBER_SID,
             'account_sid' => self::ACCOUNT_SID,
             'phone_number' => '+18005551234',
@@ -651,6 +667,8 @@ final class SmokeTest extends TestCase
             'capabilities' => ['voice' => true, 'sms' => false, 'mms' => false],
             // fax flag deliberately omitted
         ]);
+        self::assertNull($ipn->capabilities->fax);
+        self::assertTrue($ipn->capabilities->voice);
     }
 
     // ---------------------------------------------------------------------
@@ -780,9 +798,9 @@ final class SmokeTest extends TestCase
         self::assertSame('cursor-abc123', $query['PageToken']);
     }
 
-    public function testVersionIs066(): void
+    public function testVersionIs070(): void
     {
-        self::assertSame('0.6.6', Version::VERSION);
+        self::assertSame('0.7.0', Version::VERSION);
     }
 
     public function testCreateParticipantSendsFromAndTo(): void
@@ -1013,6 +1031,387 @@ final class SmokeTest extends TestCase
         self::assertSame('CA00000000000000000000000000000099', $collected[0]);
         // Only one HTTP request — no second page fetched.
         self::assertCount(1, $bag['history']);
+    }
+
+    // ---------------------------------------------------------------------
+    // v0.7.0 additions — Messages resource
+    // ---------------------------------------------------------------------
+
+    private const MESSAGE_SID = 'SM0123456789abcdef0123456789abcdef';
+
+    public function testMessagesResourceIsWired(): void
+    {
+        $client = new Client(accountSid: self::ACCOUNT_SID, apiKey: self::API_KEY);
+        self::assertInstanceOf(\VoiceML\Resource\MessagesResource::class, $client->messages);
+    }
+
+    public function testMessagesCreatePostsFormBodyAndParsesResponse(): void
+    {
+        $bag = $this->makeClient([
+            new Response(201, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => self::MESSAGE_SID,
+                'account_sid' => self::ACCOUNT_SID,
+                'api_version' => '2010-04-01',
+                'to' => '+18005551234',
+                'from' => '+18005550000',
+                'body' => 'hi there',
+                'status' => 'sent',
+                'num_segments' => '1',
+                'num_media' => '0',
+                'direction' => 'outbound-api',
+                'price' => null,
+                'price_unit' => null,
+                'error_code' => null,
+                'error_message' => null,
+                'messaging_service_sid' => null,
+                'date_created' => 'now',
+                'date_updated' => 'now',
+                'date_sent' => 'now',
+                'uri' => '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/Messages/' . self::MESSAGE_SID . '.json',
+            ])),
+        ]);
+
+        $msg = $bag['client']->messages->create(new \VoiceML\Model\CreateMessageRequest(
+            to: '+18005551234',
+            body: 'hi there',
+            from: '+18005550000',
+            statusCallback: 'https://example.com/sms-status',
+        ));
+
+        self::assertSame(self::MESSAGE_SID, $msg->sid);
+        self::assertSame('hi there', $msg->body);
+        self::assertSame(\VoiceML\Model\MessageStatus::Sent, $msg->status);
+        self::assertSame('sent', $msg->statusRaw);
+        // Wire-shape: num_segments / num_media stay STRING-typed.
+        self::assertSame('1', $msg->numSegments);
+        self::assertSame('0', $msg->numMedia);
+        self::assertNull($msg->errorCode);
+        self::assertNull($msg->price);
+
+        self::assertCount(1, $bag['history']);
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('POST', $request->getMethod());
+        self::assertStringContainsString(
+            '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/Messages.json',
+            (string) $request->getUri(),
+        );
+        self::assertSame(
+            'application/x-www-form-urlencoded',
+            $request->getHeaderLine('Content-Type'),
+        );
+        parse_str((string) $request->getBody(), $parsed);
+        self::assertSame('+18005551234', $parsed['To']);
+        self::assertSame('hi there', $parsed['Body']);
+        self::assertSame('+18005550000', $parsed['From']);
+        self::assertSame('https://example.com/sms-status', $parsed['StatusCallback']);
+        self::assertArrayNotHasKey('MessagingServiceSid', $parsed);
+    }
+
+    public function testMessagesFetchUsesSidInPath(): void
+    {
+        $bag = $this->makeClient([
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => self::MESSAGE_SID,
+                'account_sid' => self::ACCOUNT_SID,
+                'api_version' => '2010-04-01',
+                'to' => '+18005551234',
+                'from' => '+18005550000',
+                'body' => 'persisted',
+                'status' => 'failed',
+                'num_segments' => '1',
+                'num_media' => '0',
+                'direction' => 'outbound-api',
+                'error_code' => 21609,
+                'error_message' => 'SMS gateway not configured',
+                'date_created' => 'now',
+                'date_updated' => 'now',
+                'uri' => '/uri',
+            ])),
+        ]);
+
+        $msg = $bag['client']->messages->fetch(self::MESSAGE_SID);
+        self::assertSame(self::MESSAGE_SID, $msg->sid);
+        self::assertSame(\VoiceML\Model\MessageStatus::Failed, $msg->status);
+        self::assertSame(21609, $msg->errorCode);
+        self::assertSame('SMS gateway not configured', $msg->errorMessage);
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('GET', $request->getMethod());
+        self::assertStringContainsString(
+            '/Messages/' . self::MESSAGE_SID . '.json',
+            (string) $request->getUri(),
+        );
+    }
+
+    public function testMessagesListEmitsDateSentWireQueryNames(): void
+    {
+        $bag = $this->makeClient([
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'messages' => [],
+                'page' => 0,
+                'page_size' => 50,
+                'total' => 0,
+                'uri' => '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/Messages.json',
+            ])),
+        ]);
+
+        $bag['client']->messages->list(new \VoiceML\Model\ListMessagesParams(
+            to: '+18005551234',
+            dateSent: '2026-06-01',
+            dateSentLt: '2026-06-15',
+            dateSentGt: '2026-05-01',
+            pageSize: 25,
+        ));
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        $uri = (string) $request->getUri();
+        self::assertStringContainsString(
+            '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/Messages.json',
+            $uri,
+        );
+        $query = $request->getUri()->getQuery();
+        self::assertStringContainsString('To=%2B18005551234', $query);
+        self::assertStringContainsString('DateSent=2026-06-01', $query);
+        self::assertStringContainsString('DateSent%3C=2026-06-15', $query);
+        self::assertStringContainsString('DateSent%3E=2026-05-01', $query);
+        self::assertStringContainsString('PageSize=25', $query);
+    }
+
+    public function testMessagesUpdateEmitsEmptyBodyForRedaction(): void
+    {
+        $bag = $this->makeClient([
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => self::MESSAGE_SID,
+                'account_sid' => self::ACCOUNT_SID,
+                'api_version' => '2010-04-01',
+                'to' => '+18005551234',
+                'from' => '+18005550000',
+                'body' => '',
+                'status' => 'sent',
+                'num_segments' => '1',
+                'num_media' => '0',
+                'direction' => 'outbound-api',
+                'date_created' => 'now',
+                'date_updated' => 'now',
+                'uri' => '/uri',
+            ])),
+        ]);
+
+        $msg = $bag['client']->messages->update(
+            self::MESSAGE_SID,
+            new \VoiceML\Model\UpdateMessageRequest(body: ''),
+        );
+        self::assertSame('', $msg->body);
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('POST', $request->getMethod());
+        self::assertStringContainsString(
+            '/Messages/' . self::MESSAGE_SID . '.json',
+            (string) $request->getUri(),
+        );
+        parse_str((string) $request->getBody(), $parsed);
+        // Empty Body must be sent (redaction); Status is NOT set.
+        self::assertArrayHasKey('Body', $parsed);
+        self::assertSame('', $parsed['Body']);
+        self::assertArrayNotHasKey('Status', $parsed);
+    }
+
+    public function testMessagesDeleteIssuesDeleteWithDotJson(): void
+    {
+        $bag = $this->makeClient([
+            new Response(204, [], ''),
+        ]);
+
+        $bag['client']->messages->delete(self::MESSAGE_SID);
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('DELETE', $request->getMethod());
+        self::assertStringContainsString(
+            '/Messages/' . self::MESSAGE_SID . '.json',
+            (string) $request->getUri(),
+        );
+    }
+
+    public function testMessagesIterateWalksTwoPages(): void
+    {
+        $bag = $this->makeClient([
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'messages' => [
+                    ['sid' => 'SM00000000000000000000000000000001', 'account_sid' => self::ACCOUNT_SID, 'api_version' => '2010-04-01', 'to' => '+1', 'from' => '+1', 'body' => 'a', 'status' => 'sent', 'num_segments' => '1', 'num_media' => '0', 'direction' => 'outbound-api', 'date_created' => 'now', 'date_updated' => 'now', 'uri' => '/uri'],
+                    ['sid' => 'SM00000000000000000000000000000002', 'account_sid' => self::ACCOUNT_SID, 'api_version' => '2010-04-01', 'to' => '+1', 'from' => '+1', 'body' => 'b', 'status' => 'sent', 'num_segments' => '1', 'num_media' => '0', 'direction' => 'outbound-api', 'date_created' => 'now', 'date_updated' => 'now', 'uri' => '/uri'],
+                ],
+                'page' => 0,
+                'page_size' => 2,
+                'next_page_uri' => '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/Messages.json?Page=1&PageSize=2',
+            ])),
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'messages' => [
+                    ['sid' => 'SM00000000000000000000000000000003', 'account_sid' => self::ACCOUNT_SID, 'api_version' => '2010-04-01', 'to' => '+1', 'from' => '+1', 'body' => 'c', 'status' => 'sent', 'num_segments' => '1', 'num_media' => '0', 'direction' => 'outbound-api', 'date_created' => 'now', 'date_updated' => 'now', 'uri' => '/uri'],
+                ],
+                'page' => 1,
+                'page_size' => 2,
+            ])),
+        ]);
+
+        $collected = [];
+        foreach ($bag['client']->messages->iterate(pageSize: 2) as $m) {
+            $collected[] = $m->sid;
+        }
+
+        self::assertCount(3, $collected);
+        self::assertSame('SM00000000000000000000000000000001', $collected[0]);
+        self::assertSame('SM00000000000000000000000000000003', $collected[2]);
+        self::assertCount(2, $bag['history']);
+    }
+
+    // ---------------------------------------------------------------------
+    // v0.7.0 additions — Payments (Calls::startPayment / Calls::updatePayment)
+    // ---------------------------------------------------------------------
+
+    private const PAYMENT_SID = 'PY1234567890abcdef1234567890abcdef';
+
+    public function testStartPaymentEncodesFieldsAsFormBody(): void
+    {
+        $bag = $this->makeClient([
+            new Response(201, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => self::PAYMENT_SID,
+                'account_sid' => self::ACCOUNT_SID,
+                'call_sid' => self::CALL_SID,
+                'api_version' => '2010-04-01',
+                'date_created' => 'now',
+                'date_updated' => 'now',
+                'uri' => '/2010-04-01/Accounts/' . self::ACCOUNT_SID
+                    . '/Calls/' . self::CALL_SID . '/Payments/' . self::PAYMENT_SID . '.json',
+            ])),
+        ]);
+
+        $payment = $bag['client']->calls->startPayment(
+            self::CALL_SID,
+            new \VoiceML\Model\StartPaymentRequest(
+                idempotencyKey: 'idem-001',
+                statusCallback: 'https://example.com/pay-status',
+                bankAccountType: \VoiceML\Model\PaymentBankAccountType::ConsumerChecking,
+                chargeAmount: '19.99',
+                currency: 'USD',
+                description: 'Premium plan',
+                input: \VoiceML\Model\PaymentInput::Dtmf,
+                minPostalCodeLength: 5,
+                paymentConnector: 'Default',
+                paymentMethod: \VoiceML\Model\PaymentMethod::CreditCard,
+                postalCode: true,
+                securityCode: false,
+                timeout: 7,
+                tokenType: \VoiceML\Model\PaymentTokenType::Reusable,
+                validCardTypes: 'visa mastercard amex',
+                confirmation: true,
+            ),
+        );
+
+        self::assertSame(self::PAYMENT_SID, $payment->sid);
+        self::assertSame(self::CALL_SID, $payment->callSid);
+
+        self::assertCount(1, $bag['history']);
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('POST', $request->getMethod());
+        self::assertStringContainsString(
+            '/2010-04-01/Accounts/' . self::ACCOUNT_SID
+                . '/Calls/' . self::CALL_SID . '/Payments.json',
+            (string) $request->getUri(),
+        );
+        self::assertSame(
+            'application/x-www-form-urlencoded',
+            $request->getHeaderLine('Content-Type'),
+        );
+        parse_str((string) $request->getBody(), $parsed);
+        self::assertSame('idem-001', $parsed['IdempotencyKey']);
+        self::assertSame('https://example.com/pay-status', $parsed['StatusCallback']);
+        self::assertSame('consumer-checking', $parsed['BankAccountType']);
+        self::assertSame('19.99', $parsed['ChargeAmount']);
+        self::assertSame('USD', $parsed['Currency']);
+        self::assertSame('Premium plan', $parsed['Description']);
+        self::assertSame('dtmf', $parsed['Input']);
+        self::assertSame('5', $parsed['MinPostalCodeLength']);
+        self::assertSame('Default', $parsed['PaymentConnector']);
+        self::assertSame('credit-card', $parsed['PaymentMethod']);
+        self::assertSame('true', $parsed['PostalCode']);
+        self::assertSame('false', $parsed['SecurityCode']);
+        self::assertSame('7', $parsed['Timeout']);
+        self::assertSame('reusable', $parsed['TokenType']);
+        self::assertSame('visa mastercard amex', $parsed['ValidCardTypes']);
+        self::assertSame('true', $parsed['Confirmation']);
+        // Fields not set on the request must NOT appear on the wire.
+        self::assertArrayNotHasKey('Parameter', $parsed);
+        self::assertArrayNotHasKey('RequireMatchingInputs', $parsed);
+    }
+
+    public function testUpdatePaymentStatusCompleteSendsStatusOnly(): void
+    {
+        $bag = $this->makeClient([
+            new Response(202, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => self::PAYMENT_SID,
+                'account_sid' => self::ACCOUNT_SID,
+                'call_sid' => self::CALL_SID,
+                'api_version' => '2010-04-01',
+                'date_created' => 'now',
+                'date_updated' => 'later',
+                'uri' => '/uri',
+            ])),
+        ]);
+
+        $bag['client']->calls->updatePayment(
+            self::CALL_SID,
+            self::PAYMENT_SID,
+            new \VoiceML\Model\UpdatePaymentRequest(
+                status: \VoiceML\Model\PaymentSessionStatus::Complete,
+            ),
+        );
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('POST', $request->getMethod());
+        self::assertStringContainsString(
+            '/Calls/' . self::CALL_SID . '/Payments/' . self::PAYMENT_SID . '.json',
+            (string) $request->getUri(),
+        );
+        parse_str((string) $request->getBody(), $parsed);
+        self::assertSame('complete', $parsed['Status']);
+        self::assertArrayNotHasKey('Capture', $parsed);
+        self::assertArrayNotHasKey('IdempotencyKey', $parsed);
+    }
+
+    public function testUpdatePaymentCaptureSecurityCodeSendsCaptureOnly(): void
+    {
+        $bag = $this->makeClient([
+            new Response(202, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => self::PAYMENT_SID,
+                'account_sid' => self::ACCOUNT_SID,
+                'call_sid' => self::CALL_SID,
+                'api_version' => '2010-04-01',
+                'date_created' => 'now',
+                'date_updated' => 'later',
+                'uri' => '/uri',
+            ])),
+        ]);
+
+        $bag['client']->calls->updatePayment(
+            self::CALL_SID,
+            self::PAYMENT_SID,
+            new \VoiceML\Model\UpdatePaymentRequest(
+                capture: \VoiceML\Model\PaymentCapture::SecurityCode,
+            ),
+        );
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        parse_str((string) $request->getBody(), $parsed);
+        self::assertSame('security-code', $parsed['Capture']);
+        self::assertArrayNotHasKey('Status', $parsed);
     }
 
     /**

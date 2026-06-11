@@ -7,12 +7,15 @@ namespace VoiceML\Model;
 use RuntimeException;
 
 /**
- * Twilio-compat sub-object on {@see IncomingPhoneNumber}. Indicates which channel
- * types a DID supports. All four flags are REQUIRED in the spec — a missing field
- * is a protocol error and causes {@see fromArray()} to throw.
+ * Twilio-compatible sub-object on {@see IncomingPhoneNumber}. Indicates which channel
+ * types a DID supports. `voice`/`sms`/`mms` are REQUIRED — a missing field is a
+ * protocol error and causes {@see fromArray()} to throw. `fax` is OPTIONAL/nullable:
+ * Twilio's canonical Local/Mobile/TollFree list responses omit it entirely (only the
+ * top-level IncomingPhoneNumber Create/Fetch/List shapes carry it). `null` means the
+ * field was absent on the wire; do not conflate with `false`.
  *
  * VoiceML is voice-only — production responses emit `voice=true` and the rest `false`.
- * The full set is modelled so strict-binding SDK parity tests can introspect each flag.
+ * The full set is modelled so strict-binding SDK conformance tests can introspect each flag.
  */
 final class IncomingPhoneNumberCapabilities implements Model
 {
@@ -20,7 +23,7 @@ final class IncomingPhoneNumberCapabilities implements Model
         public readonly bool $voice,
         public readonly bool $sms,
         public readonly bool $mms,
-        public readonly bool $fax,
+        public readonly ?bool $fax,
     ) {
     }
 
@@ -29,7 +32,7 @@ final class IncomingPhoneNumberCapabilities implements Model
      */
     public static function fromArray(array $data): self
     {
-        foreach (['voice', 'sms', 'mms', 'fax'] as $key) {
+        foreach (['voice', 'sms', 'mms'] as $key) {
             if (!array_key_exists($key, $data)) {
                 throw new RuntimeException(
                     "IncomingPhoneNumberCapabilities: missing required field '{$key}'",
@@ -41,7 +44,7 @@ final class IncomingPhoneNumberCapabilities implements Model
             voice: (bool) $data['voice'],
             sms: (bool) $data['sms'],
             mms: (bool) $data['mms'],
-            fax: (bool) $data['fax'],
+            fax: array_key_exists('fax', $data) && $data['fax'] !== null ? (bool) $data['fax'] : null,
         );
     }
 }

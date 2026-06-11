@@ -15,6 +15,8 @@ use VoiceML\Model\Conference;
 use VoiceML\Model\ConferenceList;
 use VoiceML\Model\IncomingPhoneNumber;
 use VoiceML\Model\IncomingPhoneNumberList;
+use VoiceML\Model\Message;
+use VoiceML\Model\MessageList;
 use VoiceML\Model\Participant;
 use VoiceML\Model\ParticipantList;
 use VoiceML\Model\Queue;
@@ -53,9 +55,9 @@ final class ConformanceTest extends TestCase
     private const FIXTURES_ENV = 'VOICEML_CONFORMANCE_FIXTURES';
 
     /**
-     * Operation IDs with no SDK model — same skip set as the other SDKs.
-     * Messages (no SDK model in this language yet), notifications/events
-     * compat stubs, UserDefinedMessage.
+     * Operation IDs with no SDK model — notifications/events compat stubs and
+     * UserDefinedMessage. Messages were skipped until v0.7.0 added the
+     * `Message`/`MessageList` models.
      */
     private const SKIP_OPS = [
         'ListCallEvent' => true,
@@ -64,11 +66,13 @@ final class ConformanceTest extends TestCase
         'ListNotification' => true,
         'FetchNotification' => true,
         'CreateUserDefinedMessage' => true,
-        'CreateMessage' => true,
-        'FetchMessage' => true,
-        'ListMessage' => true,
-        'UpdateMessage' => true,
     ];
+
+    /**
+     * Sentinel op id used when the fixtures env is unset — guarantees a non-empty data set so
+     * PHPUnit 10's strict empty-provider check doesn't error on the unconfigured-CI path.
+     */
+    private const SENTINEL_OP = '__sentinel_env_unset__';
 
     /**
      * @return iterable<string, array{0:string, 1:string, 2:string}>
@@ -77,10 +81,12 @@ final class ConformanceTest extends TestCase
     {
         $root = getenv(self::FIXTURES_ENV);
         if ($root === false || $root === '') {
+            yield 'env-unset-sentinel' => [self::SENTINEL_OP, 'env-unset-sentinel', ''];
             return;
         }
         $indexPath = $root . DIRECTORY_SEPARATOR . 'index.json';
         if (!is_file($indexPath)) {
+            yield 'index-missing-sentinel' => [self::SENTINEL_OP, 'index-missing-sentinel', ''];
             return;
         }
         /** @var array<int,array{resource:string,operation_id:string,example_name:string,file:string}> $entries */
@@ -96,6 +102,9 @@ final class ConformanceTest extends TestCase
     #[DataProvider('fixtureProvider')]
     public function testFixtureConforms(string $opId, string $caseName, string $fixturePath): void
     {
+        if ($opId === self::SENTINEL_OP) {
+            $this->markTestSkipped(self::FIXTURES_ENV . ' is unset; conformance corpus not loaded');
+        }
         if (isset(self::SKIP_OPS[$opId])) {
             $this->markTestSkipped("no SDK model for {$opId}");
         }
@@ -241,6 +250,19 @@ final class ConformanceTest extends TestCase
                 self::assertNotEmpty($v->sid, 'CallTranscription.sid');
                 self::assertNotEmpty($v->accountSid, 'CallTranscription.account_sid');
                 self::assertNotEmpty($v->callSid, 'CallTranscription.call_sid');
+                break;
+
+            case 'CreateMessage':
+            case 'FetchMessage':
+            case 'UpdateMessage':
+                $v = Message::fromArray($data);
+                self::assertNotEmpty($v->sid, 'Message.sid');
+                self::assertNotEmpty($v->accountSid, 'Message.account_sid');
+                break;
+
+            case 'ListMessage':
+                $v = MessageList::fromArray($data);
+                self::assertNotEmpty($v->uri ?? '', 'MessageList.uri');
                 break;
 
             default:
