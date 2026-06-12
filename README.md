@@ -2,7 +2,7 @@
 
 The official PHP client for the [VoiceML REST API](https://voicetel.com/docs/api/v0.6/voiceml/) — Twilio-compatible outbound voice and answering-machine-detection from VoiceTel, with modern PHP 8.1+ ergonomics and battle-tested Guzzle transport.
 
-![Version](https://img.shields.io/badge/version-0.7.0-blue)
+![Version](https://img.shields.io/badge/version-0.7.1-blue)
 ![PHP](https://img.shields.io/badge/php-%E2%89%A58.1-blue)
 ![License](https://img.shields.io/badge/license-MIT%20%2B%20Commons%20Clause-green)
 ![Tests](https://img.shields.io/badge/tests-55%20unit-brightgreen)
