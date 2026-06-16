@@ -9,5 +9,5 @@ namespace VoiceML;
  */
 final class Version
 {
-    public const VERSION = '0.7.1';
+    public const VERSION = '0.7.1.1';
 }
