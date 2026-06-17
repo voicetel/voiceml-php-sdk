@@ -2,7 +2,7 @@
 
 The official PHP client for the [VoiceML REST API](https://voicetel.com/docs/api/v0.7/voiceml/) — Twilio-compatible outbound voice and answering-machine-detection from VoiceTel, with modern PHP 8.1+ ergonomics and battle-tested Guzzle transport.
 
-![Version](https://img.shields.io/badge/version-0.7.1-blue)
+![Version](https://img.shields.io/badge/version-0.8.1-blue)
 ![PHP](https://img.shields.io/badge/php-%E2%89%A58.1-blue)
 ![License](https://img.shields.io/badge/license-MIT%20%2B%20Commons%20Clause-green)
 ![Tests](https://img.shields.io/badge/tests-55%20unit-brightgreen)
@@ -49,10 +49,12 @@ The official PHP client for the [VoiceML REST API](https://voicetel.com/docs/api
 - **Messages** — create, fetch, list (To/From/DateSent filters + pagination), update (Body redaction; Status=canceled), delete.
 - **IncomingPhoneNumbers** — list, fetch, update.
 - **Notifications** — fetch, list.
+- **SIP** — SIP Trunking: Domains (CRUD), CredentialLists + Credentials (CRUD), IpAccessControlLists + IpAddresses (CRUD), Domain↔ACL/CredentialList mappings (historical, Auth/Calls, Auth/Registrations namespaces).
+- **Routes V2** — Twilio Inbound Processing Region API: `$client->routesV2->sipDomains->fetch($name)` / `update($name, voiceRegion: 'us1', friendlyName: 'ingress')`.
 - **Diagnostics** — `/health` deep probe, OpenAPI spec.
 
 ### 🧪 Tested
-- **55 unit tests** with mocked Guzzle handlers — every method and every error path exercised, no network in CI.
+- **65 unit tests** with mocked Guzzle handlers — every method and every error path exercised, no network in CI.
 - **Conformance test suite** that validates wire shapes against the published OpenAPI document — spec drift gets caught at parse time.
 
 ### 📦 Clean Distribution

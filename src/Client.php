@@ -15,6 +15,8 @@ use VoiceML\Resource\MessagesResource;
 use VoiceML\Resource\NotificationsResource;
 use VoiceML\Resource\QueuesResource;
 use VoiceML\Resource\RecordingsResource;
+use VoiceML\Resource\RoutesV2Resource;
+use VoiceML\Resource\SipResource;
 
 /**
  * VoiceML client. Construct once per `{accountSid, apiKey}` pair and reuse.
@@ -48,6 +50,8 @@ final class Client
     public readonly IncomingPhoneNumbersResource $incomingPhoneNumbers;
     public readonly MessagesResource $messages;
     public readonly NotificationsResource $notifications;
+    public readonly SipResource $sip;
+    public readonly RoutesV2Resource $routesV2;
     public readonly DiagnosticsResource $diagnostics;
 
     private readonly Transport $transport;
@@ -92,6 +96,8 @@ final class Client
         $this->incomingPhoneNumbers = new IncomingPhoneNumbersResource($this->transport);
         $this->messages = new MessagesResource($this->transport);
         $this->notifications = new NotificationsResource($this->transport);
+        $this->sip = new SipResource($this->transport);
+        $this->routesV2 = new RoutesV2Resource($this->transport);
         $this->diagnostics = new DiagnosticsResource($this->transport);
     }
 
