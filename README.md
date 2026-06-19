@@ -1,6 +1,6 @@
 # 📞 VoiceML PHP SDK
 
-The official PHP client for the [VoiceML REST API](https://voicetel.com/docs/api/v0.7/voiceml/) — Twilio-compatible outbound voice and answering-machine-detection from VoiceTel, with modern PHP 8.1+ ergonomics and battle-tested Guzzle transport.
+The official PHP client for the [VoiceML REST API](https://voicetel.com/docs/api/v0.8/voiceml/) — Twilio-compatible outbound voice and answering-machine-detection from VoiceTel, with modern PHP 8.1+ ergonomics and battle-tested Guzzle transport.
 
 ![Version](https://img.shields.io/badge/version-0.8.1-blue)
 ![PHP](https://img.shields.io/badge/php-%E2%89%A58.1-blue)
@@ -123,7 +123,7 @@ $client = new VoiceML\Client(accountSid: $sid, authToken: $token);
 
 Passing both raises `ConfigurationException`.
 
-> Don't have credentials yet? See **[voicetel.com/docs/api/v0.7/voiceml/](https://voicetel.com/docs/api/v0.7/voiceml/)** for issuance and rotation.
+> Don't have credentials yet? See **[voicetel.com/docs/api/v0.8/voiceml/](https://voicetel.com/docs/api/v0.8/voiceml/)** for issuance and rotation.
 
 ## 🗺️ Resource Reference
 
@@ -285,7 +285,7 @@ vendor/bin/phpunit tests/ConformanceTest.php
 
 ## 📖 API Documentation
 
-- **Reference docs:** [voicetel.com/docs/api/v0.7/voiceml/](https://voicetel.com/docs/api/v0.7/voiceml/)
+- **Reference docs:** [voicetel.com/docs/api/v0.8/voiceml/](https://voicetel.com/docs/api/v0.8/voiceml/)
 - **Validator:** [voicetel.com/voiceml/validator/](https://voicetel.com/voiceml/validator/)
 - **SDK catalogue:** [voicetel.com/docs/voiceml-sdks/](https://voicetel.com/docs/voiceml-sdks/)
 - **Type definitions:** see the `VoiceML\Model` namespace — every wire shape has a typed PHP class.
