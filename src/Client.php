@@ -7,8 +7,10 @@ namespace VoiceML;
 use GuzzleHttp\ClientInterface;
 use VoiceML\Exception\ConfigurationException;
 use VoiceML\Resource\ApplicationsResource;
+use VoiceML\Resource\AssistantsV1Resource;
 use VoiceML\Resource\CallsResource;
 use VoiceML\Resource\ConferencesResource;
+use VoiceML\Resource\ConversationsV1Resource;
 use VoiceML\Resource\DiagnosticsResource;
 use VoiceML\Resource\IncomingPhoneNumbersResource;
 use VoiceML\Resource\MessagesResource;
@@ -17,6 +19,7 @@ use VoiceML\Resource\QueuesResource;
 use VoiceML\Resource\RecordingsResource;
 use VoiceML\Resource\RoutesV2Resource;
 use VoiceML\Resource\SipResource;
+use VoiceML\Resource\VoiceV1Resource;
 
 /**
  * VoiceML client. Construct once per `{accountSid, apiKey}` pair and reuse.
@@ -52,6 +55,9 @@ final class Client
     public readonly NotificationsResource $notifications;
     public readonly SipResource $sip;
     public readonly RoutesV2Resource $routesV2;
+    public readonly VoiceV1Resource $voiceV1;
+    public readonly ConversationsV1Resource $conversationsV1;
+    public readonly AssistantsV1Resource $assistantsV1;
     public readonly DiagnosticsResource $diagnostics;
 
     private readonly Transport $transport;
@@ -98,6 +104,9 @@ final class Client
         $this->notifications = new NotificationsResource($this->transport);
         $this->sip = new SipResource($this->transport);
         $this->routesV2 = new RoutesV2Resource($this->transport);
+        $this->voiceV1 = new VoiceV1Resource($this->transport);
+        $this->conversationsV1 = new ConversationsV1Resource($this->transport);
+        $this->assistantsV1 = new AssistantsV1Resource($this->transport);
         $this->diagnostics = new DiagnosticsResource($this->transport);
     }
 

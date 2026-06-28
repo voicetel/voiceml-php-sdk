@@ -10,9 +10,11 @@ use VoiceML\Transport;
 final class RoutesV2Resource
 {
     public readonly RoutesV2SipDomainsResource $sipDomains;
+    public readonly RoutesV2PhoneNumbersResource $phoneNumbers;
 
     public function __construct(Transport $transport)
     {
         $this->sipDomains = new RoutesV2SipDomainsResource($transport);
+        $this->phoneNumbers = new RoutesV2PhoneNumbersResource($transport);
     }
 }

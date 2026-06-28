@@ -10,6 +10,7 @@ use VoiceML\Model\Application;
 use VoiceML\Model\ApplicationList;
 use VoiceML\Model\Call;
 use VoiceML\Model\CallList;
+use VoiceML\Model\CallPayment;
 use VoiceML\Model\CallTranscription;
 use VoiceML\Model\Conference;
 use VoiceML\Model\ConferenceList;
@@ -25,6 +26,19 @@ use VoiceML\Model\QueueMember;
 use VoiceML\Model\QueueMemberList;
 use VoiceML\Model\Recording;
 use VoiceML\Model\RecordingList;
+use VoiceML\Model\SipCredential;
+use VoiceML\Model\SipCredentialList;
+use VoiceML\Model\SipCredentialListList;
+use VoiceML\Model\SipCredentialListMappingList;
+use VoiceML\Model\SipCredentialListPage;
+use VoiceML\Model\SipDomain;
+use VoiceML\Model\SipDomainList;
+use VoiceML\Model\SipDomainMapping;
+use VoiceML\Model\SipIpAccessControlList;
+use VoiceML\Model\SipIpAccessControlListList;
+use VoiceML\Model\SipIpAccessControlListMappingList;
+use VoiceML\Model\SipIpAddress;
+use VoiceML\Model\SipIpAddressList;
 use VoiceML\Model\SiprecSession;
 use VoiceML\Model\Stream;
 
@@ -55,18 +69,15 @@ final class ConformanceTest extends TestCase
     private const FIXTURES_ENV = 'VOICEML_CONFORMANCE_FIXTURES';
 
     /**
-     * Operation IDs with no SDK model — notifications/events compat stubs and
-     * UserDefinedMessage. Messages were skipped until v0.7.0 added the
-     * `Message`/`MessageList` models.
+     * Operation IDs the harness should skip outright. Empty in current state:
+     * every operation in the fixture corpus is dispatched, either to a typed
+     * SDK model or (for resources the PHP SDK doesn't yet expose as DTOs) to
+     * a raw-array shape check. Messages were skipped until v0.7.0 added the
+     * `Message`/`MessageList` models; notifications/events/UserDefinedMessage
+     * are now validated as raw response shapes (mirrors Java's JsonNode and
+     * Go's `&map[string]any{}` dispatch).
      */
-    private const SKIP_OPS = [
-        'ListCallEvent' => true,
-        'ListCallNotification' => true,
-        'FetchCallNotification' => true,
-        'ListNotification' => true,
-        'FetchNotification' => true,
-        'CreateUserDefinedMessage' => true,
-    ];
+    private const SKIP_OPS = [];
 
     /**
      * Sentinel op id used when the fixtures env is unset — guarantees a non-empty data set so
@@ -265,20 +276,286 @@ final class ConformanceTest extends TestCase
                 self::assertNotEmpty($v->uri ?? '', 'MessageList.uri');
                 break;
 
+            // ---------- Payments (`/Calls/{sid}/Payments`) ----------
+            // CreatePayments/UpdatePayments fixtures omit api_version; the
+            // CallPayment model tolerates that (constructor defaults to '').
+            case 'CreatePayments':
+            case 'UpdatePayments':
+                $v = CallPayment::fromArray($data);
+                self::assertNotEmpty($v->sid, 'CallPayment.sid');
+                self::assertNotEmpty($v->accountSid, 'CallPayment.account_sid');
+                self::assertNotEmpty($v->callSid, 'CallPayment.call_sid');
+                break;
+
+            // ---------- SIP Domains ----------
+            case 'CreateSipDomain':
+            case 'FetchSipDomain':
+            case 'UpdateSipDomain':
+                $v = SipDomain::fromArray($data);
+                self::assertNotEmpty($v->sid, 'SipDomain.sid');
+                self::assertNotEmpty($v->accountSid, 'SipDomain.account_sid');
+                self::assertNotEmpty($v->domainName, 'SipDomain.domain_name');
+                break;
+
+            case 'ListSipDomain':
+                $v = SipDomainList::fromArray($data);
+                self::assertNotEmpty($v->uri ?? '', 'SipDomainList.uri');
+                break;
+
+            // ---------- SIP CredentialLists ----------
+            case 'CreateSipCredentialList':
+            case 'FetchSipCredentialList':
+            case 'UpdateSipCredentialList':
+                $v = SipCredentialList::fromArray($data);
+                self::assertNotEmpty($v->sid, 'SipCredentialList.sid');
+                self::assertNotEmpty($v->accountSid, 'SipCredentialList.account_sid');
+                break;
+
+            case 'ListSipCredentialList':
+                $v = SipCredentialListList::fromArray($data);
+                self::assertNotEmpty($v->uri ?? '', 'SipCredentialListList.uri');
+                break;
+
+            // ---------- SIP Credentials (inside a CredentialList) ----------
+            case 'CreateSipCredential':
+            case 'FetchSipCredential':
+            case 'UpdateSipCredential':
+                $v = SipCredential::fromArray($data);
+                self::assertNotEmpty($v->sid, 'SipCredential.sid');
+                self::assertNotEmpty($v->accountSid, 'SipCredential.account_sid');
+                self::assertNotEmpty($v->credentialListSid, 'SipCredential.credential_list_sid');
+                break;
+
+            case 'ListSipCredential':
+                $v = SipCredentialListPage::fromArray($data);
+                self::assertNotEmpty($v->uri ?? '', 'SipCredentialListPage.uri');
+                break;
+
+            // ---------- SIP IpAccessControlLists ----------
+            case 'CreateSipIpAccessControlList':
+            case 'FetchSipIpAccessControlList':
+            case 'UpdateSipIpAccessControlList':
+                $v = SipIpAccessControlList::fromArray($data);
+                self::assertNotEmpty($v->sid, 'SipIpAccessControlList.sid');
+                self::assertNotEmpty($v->accountSid, 'SipIpAccessControlList.account_sid');
+                break;
+
+            case 'ListSipIpAccessControlList':
+                $v = SipIpAccessControlListList::fromArray($data);
+                self::assertNotEmpty($v->uri ?? '', 'SipIpAccessControlListList.uri');
+                break;
+
+            // ---------- SIP IpAddresses (inside an IpAccessControlList) ----------
+            case 'CreateSipIpAddress':
+            case 'FetchSipIpAddress':
+            case 'UpdateSipIpAddress':
+                $v = SipIpAddress::fromArray($data);
+                self::assertNotEmpty($v->sid, 'SipIpAddress.sid');
+                self::assertNotEmpty($v->accountSid, 'SipIpAddress.account_sid');
+                self::assertNotEmpty($v->ipAddress, 'SipIpAddress.ip_address');
+                break;
+
+            case 'ListSipIpAddress':
+                $v = SipIpAddressList::fromArray($data);
+                self::assertNotEmpty($v->uri ?? '', 'SipIpAddressList.uri');
+                break;
+
+            // ---------- SIP CredentialListMappings (historical /Domains/{SD}/CredentialListMappings) ----------
+            case 'CreateSipCredentialListMapping':
+            case 'FetchSipCredentialListMapping':
+                $v = SipDomainMapping::fromArray($data);
+                self::assertNotEmpty($v->sid, 'SipDomainMapping.sid');
+                self::assertNotEmpty($v->accountSid, 'SipDomainMapping.account_sid');
+                break;
+
+            case 'ListSipCredentialListMapping':
+                $v = SipCredentialListMappingList::fromArray($data);
+                self::assertNotEmpty($v->uri ?? '', 'SipCredentialListMappingList.uri');
+                break;
+
+            // ---------- SIP IpAccessControlListMappings (historical /Domains/{SD}/IpAccessControlListMappings) ----------
+            case 'CreateSipIpAccessControlListMapping':
+            case 'FetchSipIpAccessControlListMapping':
+                $v = SipDomainMapping::fromArray($data);
+                self::assertNotEmpty($v->sid, 'SipDomainMapping.sid');
+                self::assertNotEmpty($v->accountSid, 'SipDomainMapping.account_sid');
+                break;
+
+            case 'ListSipIpAccessControlListMapping':
+                $v = SipIpAccessControlListMappingList::fromArray($data);
+                self::assertNotEmpty($v->uri ?? '', 'SipIpAccessControlListMappingList.uri');
+                break;
+
+            // ---------- SIP Auth/Calls + Auth/Registrations mappings (v0.8 split surfaces) ----------
+            // The Twilio Auth-namespaced mapping fixtures omit domain_sid on
+            // Create/Fetch (the binding is implicit in the URL); assert only
+            // the universally-present sid + account_sid. Mirrors Java/C#.
+            case 'CreateSipAuthCallsCredentialListMapping':
+            case 'FetchSipAuthCallsCredentialListMapping':
+            case 'CreateSipAuthCallsIpAccessControlListMapping':
+            case 'FetchSipAuthCallsIpAccessControlListMapping':
+            case 'CreateSipAuthRegistrationsCredentialListMapping':
+            case 'FetchSipAuthRegistrationsCredentialListMapping':
+                $v = SipDomainMapping::fromArray($data);
+                self::assertNotEmpty($v->sid, "SipDomainMapping.sid ({$opId})");
+                self::assertNotEmpty($v->accountSid, "SipDomainMapping.account_sid ({$opId})");
+                break;
+
+            // The Auth/* list envelopes use the generic `contents` key instead
+            // of `credential_list_mappings` / `ip_access_control_list_mappings`.
+            // The List models tolerate the missing key (items stay empty), and
+            // the wire `uri` envelope field is preserved — that's what we assert.
+            case 'ListSipAuthCallsCredentialListMapping':
+            case 'ListSipAuthRegistrationsCredentialListMapping':
+                $v = SipCredentialListMappingList::fromArray($data);
+                self::assertNotEmpty($v->uri ?? '', "SipCredentialListMappingList.uri ({$opId})");
+                break;
+
+            case 'ListSipAuthCallsIpAccessControlListMapping':
+                $v = SipIpAccessControlListMappingList::fromArray($data);
+                self::assertNotEmpty($v->uri ?? '', "SipIpAccessControlListMappingList.uri ({$opId})");
+                break;
+
+            // ---------- Resources not (yet) modelled as PHP DTOs ----------
+            // Mirrors the Java harness's JsonNode dispatch and the Go harness's
+            // `&map[string]any{}` target: assert the documented top-level fields
+            // on the raw decoded array. Catches malformed responses and shape
+            // drift on key fields without forcing a full DTO surface for
+            // resources the PHP SDK doesn't (yet) expose to callers.
+
+            case 'FetchAccount':
+            case 'UpdateAccount':
+                self::assertNotEmpty((string) ($data['sid'] ?? ''), 'Account.sid');
+                self::assertNotEmpty((string) ($data['status'] ?? ''), 'Account.status');
+                self::assertNotEmpty((string) ($data['uri'] ?? ''), 'Account.uri');
+                break;
+
+            case 'FetchBalance':
+                self::assertNotEmpty((string) ($data['account_sid'] ?? ''), 'Balance.account_sid');
+                self::assertNotEmpty((string) ($data['balance'] ?? ''), 'Balance.balance');
+                self::assertNotEmpty((string) ($data['currency'] ?? ''), 'Balance.currency');
+                break;
+
+            case 'FetchMedia':
+                self::assertNotEmpty((string) ($data['sid'] ?? ''), 'Media.sid');
+                self::assertNotEmpty((string) ($data['account_sid'] ?? ''), 'Media.account_sid');
+                self::assertNotEmpty((string) ($data['parent_sid'] ?? ''), 'Media.parent_sid');
+                self::assertNotEmpty((string) ($data['content_type'] ?? ''), 'Media.content_type');
+                break;
+
+            case 'ListMedia':
+                self::assertNotEmpty((string) ($data['uri'] ?? ''), 'MediaList.uri');
+                self::assertArrayHasKey('media_list', $data, 'MediaList.media_list (envelope key)');
+                break;
+
+            case 'FetchOutgoingCallerId':
+            case 'UpdateOutgoingCallerId':
+                self::assertNotEmpty((string) ($data['sid'] ?? ''), 'OutgoingCallerId.sid');
+                self::assertNotEmpty((string) ($data['account_sid'] ?? ''), 'OutgoingCallerId.account_sid');
+                self::assertNotEmpty((string) ($data['phone_number'] ?? ''), 'OutgoingCallerId.phone_number');
+                break;
+
+            case 'ListOutgoingCallerId':
+                self::assertNotEmpty((string) ($data['uri'] ?? ''), 'OutgoingCallerIdList.uri');
+                self::assertArrayHasKey('outgoing_caller_ids', $data, 'OutgoingCallerIdList.outgoing_caller_ids (envelope key)');
+                break;
+
+            case 'CreateValidationRequest':
+                self::assertNotEmpty((string) ($data['account_sid'] ?? ''), 'ValidationRequest.account_sid');
+                self::assertNotEmpty((string) ($data['phone_number'] ?? ''), 'ValidationRequest.phone_number');
+                self::assertNotEmpty((string) ($data['validation_code'] ?? ''), 'ValidationRequest.validation_code');
+                break;
+
+            // Classic /Transcriptions resource (recording transcriptions, NOT the
+            // realtime CallTranscription). The PHP SDK doesn't currently expose
+            // this as a DTO; assert documented top-level fields on the raw array.
+            case 'FetchTranscription':
+            case 'FetchRecordingTranscription':
+                self::assertNotEmpty((string) ($data['sid'] ?? ''), 'Transcription.sid');
+                self::assertNotEmpty((string) ($data['account_sid'] ?? ''), 'Transcription.account_sid');
+                self::assertNotEmpty((string) ($data['recording_sid'] ?? ''), 'Transcription.recording_sid');
+                break;
+
+            case 'ListTranscription':
+            case 'ListRecordingTranscription':
+                self::assertNotEmpty((string) ($data['uri'] ?? ''), "TranscriptionList.uri ({$opId})");
+                self::assertArrayHasKey('transcriptions', $data, 'TranscriptionList.transcriptions (envelope key)');
+                break;
+
+            // ---------- Notifications / Events / UserDefinedMessage compat stubs ----------
+            // VoiceML treats these as Twilio-compat surface area that VoiceML
+            // itself doesn't populate (notifications/events are first-class on
+            // Twilio; VoiceML returns empty lists). The fixtures are still the
+            // canonical Twilio shape — assert documented top-level fields.
+
+            case 'FetchCallNotification':
+            case 'FetchNotification':
+                self::assertNotEmpty((string) ($data['sid'] ?? ''), 'Notification.sid');
+                self::assertNotEmpty((string) ($data['account_sid'] ?? ''), 'Notification.account_sid');
+                self::assertNotEmpty((string) ($data['call_sid'] ?? ''), 'Notification.call_sid');
+                self::assertNotEmpty((string) ($data['uri'] ?? ''), 'Notification.uri');
+                break;
+
+            case 'ListCallNotification':
+            case 'ListNotification':
+                self::assertNotEmpty((string) ($data['uri'] ?? ''), "NotificationList.uri ({$opId})");
+                self::assertArrayHasKey('notifications', $data, 'NotificationList.notifications (envelope key)');
+                break;
+
+            case 'ListCallEvent':
+                self::assertNotEmpty((string) ($data['uri'] ?? ''), 'EventsList.uri');
+                self::assertArrayHasKey('events', $data, 'EventsList.events (envelope key)');
+                break;
+
+            // UserDefinedMessage Create response has sid/account_sid/call_sid/
+            // date_created but no `uri`. KX-prefixed sid.
+            case 'CreateUserDefinedMessage':
+                self::assertNotEmpty((string) ($data['sid'] ?? ''), 'UserDefinedMessage.sid');
+                self::assertNotEmpty((string) ($data['account_sid'] ?? ''), 'UserDefinedMessage.account_sid');
+                self::assertNotEmpty((string) ($data['call_sid'] ?? ''), 'UserDefinedMessage.call_sid');
+                break;
+
             default:
                 self::fail("conformance harness: no mapping for operation_id={$opId} (case={$caseName}). Add a case or extend SKIP_OPS.");
         }
 
         // Suppress static-analysis "unused variable" warning — we use $v
-        // for the side-effect of construction (catches type errors).
+        // for the side-effect of construction (catches type errors). The
+        // raw-JSON dispatch branches above don't set $v; unset() of an
+        // undefined variable is a silent no-op in PHP.
         unset($v);
     }
 
-    public function testSkipsWhenEnvUnset(): void
+    /**
+     * Sentinel test verifying the harness wires up cleanly in both
+     * fixture-mounted and unmounted contexts:
+     *   - env unset: fixtureProvider yields exactly one sentinel row, which
+     *     testFixtureConforms() marks as a soft skip (not counted toward the
+     *     conformance pass).
+     *   - env set: fixtureProvider yields the full fixture corpus; this
+     *     sentinel just confirms the provider produced more than the
+     *     unmounted-path single row.
+     * Asserting concretely (instead of conditionally skipping) keeps the
+     * conformance suite at zero skips when the corpus is mounted.
+     */
+    public function testProviderWiresUp(): void
     {
-        if (getenv(self::FIXTURES_ENV) !== false && getenv(self::FIXTURES_ENV) !== '') {
-            self::markTestSkipped(self::FIXTURES_ENV . ' is set; the data-driven tests cover this path');
+        $rows = iterator_to_array(self::fixtureProvider(), preserve_keys: false);
+        self::assertNotEmpty($rows, 'fixtureProvider must yield at least the sentinel row');
+        $envSet = getenv(self::FIXTURES_ENV) !== false && getenv(self::FIXTURES_ENV) !== '';
+        if ($envSet) {
+            self::assertGreaterThan(
+                1,
+                count($rows),
+                'with VOICEML_CONFORMANCE_FIXTURES set, provider should yield the full corpus, not just the sentinel',
+            );
+        } else {
+            self::assertCount(
+                1,
+                $rows,
+                'with VOICEML_CONFORMANCE_FIXTURES unset, provider should yield only the sentinel row',
+            );
+            self::assertSame(self::SENTINEL_OP, $rows[0][0], 'sentinel row op id mismatch');
         }
-        self::assertTrue(true, 'Sentinel: harness wires up without an env var.');
     }
 }

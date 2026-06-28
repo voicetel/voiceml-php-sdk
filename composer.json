@@ -1,6 +1,6 @@
 {
     "name": "voicetel/voiceml",
-    "version": "0.8.1",
+    "version": "0.9.1",
     "description": "Official PHP SDK for the VoiceML REST API (Twilio-compatible voice + AMD service from VoiceTel)",
     "type": "library",
     "license": "MIT",
