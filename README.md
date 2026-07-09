@@ -1,11 +1,11 @@
 # 📞 VoiceML PHP SDK
 
-The official PHP client for the [VoiceML REST API](https://voicetel.com/docs/api/v0.8/voiceml/) — Twilio-compatible outbound voice and answering-machine-detection from VoiceTel, with modern PHP 8.1+ ergonomics and battle-tested Guzzle transport.
+The official PHP client for the [VoiceML REST API](https://voicetel.com/docs/api/v0.9/voiceml/) — Twilio-compatible outbound voice and answering-machine-detection from VoiceTel, with modern PHP 8.1+ ergonomics and battle-tested Guzzle transport.
 
-![Version](https://img.shields.io/badge/version-0.9.1-blue)
+![Version](https://img.shields.io/badge/version-0.9.2-blue)
 ![PHP](https://img.shields.io/badge/php-%E2%89%A58.1-blue)
 ![License](https://img.shields.io/badge/license-MIT%20%2B%20Commons%20Clause-green)
-![Tests](https://img.shields.io/badge/tests-55%20unit-brightgreen)
+![Tests](https://img.shields.io/badge/tests-110%20unit-brightgreen)
 ![Typed](https://img.shields.io/badge/typed-readonly%20properties-blue)
 
 ## 📚 Table of Contents
@@ -54,7 +54,7 @@ The official PHP client for the [VoiceML REST API](https://voicetel.com/docs/api
 - **Diagnostics** — `/health` deep probe, OpenAPI spec.
 
 ### 🧪 Tested
-- **65 unit tests** with mocked Guzzle handlers — every method and every error path exercised, no network in CI.
+- **110 unit tests** with mocked Guzzle handlers — every method and every error path exercised, no network in CI.
 - **Conformance test suite** that validates wire shapes against the published OpenAPI document — spec drift gets caught at parse time.
 
 ### 📦 Clean Distribution
@@ -123,7 +123,26 @@ $client = new VoiceML\Client(accountSid: $sid, authToken: $token);
 
 Passing both raises `ConfigurationException`.
 
-> Don't have credentials yet? See **[voicetel.com/docs/api/v0.8/voiceml/](https://voicetel.com/docs/api/v0.8/voiceml/)** for issuance and rotation.
+> Don't have credentials yet? See **[voicetel.com/docs/api/v0.9/voiceml/](https://voicetel.com/docs/api/v0.9/voiceml/)** for issuance and rotation.
+
+### 🌐 Per-product hosts
+
+VoiceML mirrors Twilio's product-per-subdomain model. Most resources answer on the default host (`voiceml.voicetel.com`), but two products ride their own subdomains, derived automatically from your `baseUrl`:
+
+- **Conversations** (`$client->conversationsV1`) → `conversations.voicetel.com`
+- **Messaging Service** (`$client->messagingV1`) → `messaging.voicetel.com`
+
+Derivation swaps the `voiceml` label for a recognised `*.voicetel.com` host (e.g. `east-1.us.voiceml.voicetel.com` → `east-1.us.messaging.voicetel.com`); any other base URL (a self-hosted instance) keeps every product on that single host. Self-hosters can point a product at a custom host explicitly:
+
+```php
+$client = new VoiceML\Client(
+    accountSid: 'AC…',
+    apiKey: '…',
+    baseUrl: 'https://pbx.example.com',
+    messagingBaseUrl: 'https://msg.example.com',
+    conversationsBaseUrl: 'https://conv.example.com',
+);
+```
 
 ## 🗺️ Resource Reference
 
@@ -137,6 +156,9 @@ Passing both raises `ConfigurationException`.
 | `$client->messages` | create, fetch, list, update, delete | To/From/DateSent filters; Body redaction; Status=canceled |
 | `$client->incomingPhoneNumbers` | list, fetch, update | |
 | `$client->notifications` | fetch, list | |
+| `$client->conversationsV1` | conversations, messages, participants, webhooks, roles, users, credentials, configuration, services | rides `conversations.voicetel.com` |
+| `$client->messagingV1->services` | create, list, fetch, update, delete | Messaging Service (`MG…`); rides `messaging.voicetel.com` |
+| `$client->pricing` | `v1`/`v2` voice, messaging, phoneNumbers, trunking — countries + numbers | read-only pricing lookups |
 | `$client->diagnostics` | `/health`, OpenAPI spec | |
 
 Every method that takes a request body accepts a typed model imported from `VoiceML\Model`:
@@ -285,7 +307,7 @@ vendor/bin/phpunit tests/ConformanceTest.php
 
 ## 📖 API Documentation
 
-- **Reference docs:** [voicetel.com/docs/api/v0.8/voiceml/](https://voicetel.com/docs/api/v0.8/voiceml/)
+- **Reference docs:** [voicetel.com/docs/api/v0.9/voiceml/](https://voicetel.com/docs/api/v0.9/voiceml/)
 - **Validator:** [voicetel.com/voiceml/validator/](https://voicetel.com/voiceml/validator/)
 - **SDK catalogue:** [voicetel.com/docs/voiceml-sdks/](https://voicetel.com/docs/voiceml-sdks/)
 - **Type definitions:** see the `VoiceML\Model` namespace — every wire shape has a typed PHP class.

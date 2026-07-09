@@ -798,9 +798,9 @@ final class SmokeTest extends TestCase
         self::assertSame('cursor-abc123', $query['PageToken']);
     }
 
-    public function testVersionIs091(): void
+    public function testVersionIs092(): void
     {
-        self::assertSame('0.9.1', Version::VERSION);
+        self::assertSame('0.9.2', Version::VERSION);
     }
 
     public function testCreateParticipantSendsFromAndTo(): void

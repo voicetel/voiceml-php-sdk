@@ -298,6 +298,8 @@ final class V090Test extends TestCase
         self::assertStringContainsString('FriendlyName=support', $body);
         self::assertStringContainsString('Timers.Inactive=PT1H', urldecode($body));
         self::assertStringContainsString('/v1/Conversations', (string) $bag['history'][0]['request']->getUri());
+        // Conversations v1 rides the conversations product host (v0.9.2).
+        self::assertSame('conversations.voicetel.com', $bag['history'][0]['request']->getUri()->getHost());
 
         $list = $client->conversationsV1->conversations->list(['PageSize' => 25]);
         self::assertCount(1, $list->conversations);
@@ -327,6 +329,7 @@ final class V090Test extends TestCase
         $uri = (string) $bag['history'][0]['request']->getUri();
         self::assertStringContainsString('/v1/Conversations/' . self::CONVERSATION_SID . '/Messages', $uri);
         self::assertStringNotContainsString(self::ACCOUNT_SID, $uri);
+        self::assertSame('conversations.voicetel.com', $bag['history'][0]['request']->getUri()->getHost());
     }
 
     public function testConversationsV1ReceiptsDoubleNestedRouting(): void
@@ -626,5 +629,8 @@ final class V090Test extends TestCase
         $s = $client->conversationsV1->services->create(new CreateConversationsV1ServiceRequest(friendlyName: 'sandbox'));
         self::assertSame(self::SERVICE_SID, $s->sid);
         self::assertStringContainsString('/v1/Services', (string) $bag['history'][0]['request']->getUri());
+        // Conversation Service rides the conversations host, disambiguating it
+        // from the identically-pathed Messaging Service (v0.9.2).
+        self::assertSame('conversations.voicetel.com', $bag['history'][0]['request']->getUri()->getHost());
     }
 }

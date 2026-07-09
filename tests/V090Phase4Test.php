@@ -114,6 +114,8 @@ final class V090Phase4Test extends TestCase
         $createUri = (string) $bag['history'][0]['request']->getUri();
         self::assertStringContainsString('/v1/Services/' . self::SERVICE_SID . '/Conversations', $createUri);
         self::assertStringNotContainsString(self::ACCOUNT_SID, $createUri);
+        // Service-scoped Conversations v1 rides the conversations host (v0.9.2).
+        self::assertSame('conversations.voicetel.com', $bag['history'][0]['request']->getUri()->getHost());
         $createBody = urldecode((string) $bag['history'][0]['request']->getBody());
         self::assertStringContainsString('FriendlyName=support', $createBody);
         self::assertStringContainsString('Timers.Inactive=PT1H', $createBody);

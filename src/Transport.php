@@ -39,15 +39,42 @@ final class Transport
     private const RETRYABLE_STATUSES = [429, 500, 502, 503, 504];
 
     private readonly ClientInterface $http;
+    private readonly string $baseUrl;
 
-    public function __construct(private readonly ClientOptions $options)
-    {
-        $this->http = $options->httpClient ?? new GuzzleClient([
-            'base_uri' => $options->baseUrl . '/',
+    /**
+     * @param string|null           $baseUrl Effective base URL for this transport. Defaults to
+     *                                       `$options->baseUrl`; product-scoped transports pass a
+     *                                       subdomain (`conversations.voicetel.com`, …).
+     * @param ClientInterface|null  $http    Shared underlying HTTP client. When null a fresh Guzzle
+     *                                       client is created. {@see forBaseUrl()} reuses the existing
+     *                                       one so connection pooling and injected mocks are shared.
+     */
+    public function __construct(
+        private readonly ClientOptions $options,
+        ?string $baseUrl = null,
+        ?ClientInterface $http = null,
+    ) {
+        $this->baseUrl = rtrim($baseUrl ?? $options->baseUrl, '/');
+        $this->http = $http ?? $options->httpClient ?? new GuzzleClient([
+            'base_uri' => $this->baseUrl . '/',
             'timeout' => $options->timeout,
             'http_errors' => false,
             'allow_redirects' => false,
         ]);
+    }
+
+    /**
+     * Return a transport pinned to a different product base URL, reusing this
+     * transport's HTTP client (and thus its connection pool / injected mock).
+     *
+     * Every request an entire resource group makes then lands on its product
+     * subdomain without each resource needing to know its own host — the URL
+     * {@see request()} sends is absolute, so it wins over the shared client's
+     * baked-in base URI.
+     */
+    public function forBaseUrl(string $baseUrl): self
+    {
+        return new self($this->options, $baseUrl, $this->http);
     }
 
     public function accountSid(): string
@@ -57,7 +84,7 @@ final class Transport
 
     public function baseUrl(): string
     {
-        return $this->options->baseUrl;
+        return $this->baseUrl;
     }
 
     /**
@@ -225,7 +252,7 @@ final class Transport
     private function absUrl(string $path): string
     {
         // Guzzle treats absolute URIs as-is; relative URIs resolve against base_uri.
-        return $this->options->baseUrl . $path;
+        return $this->baseUrl . $path;
     }
 
     private function parseResponse(ResponseInterface $response): mixed

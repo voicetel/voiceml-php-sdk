@@ -21,6 +21,19 @@ final class ClientOptions
     public const DEFAULT_MAX_RETRIES = 2;
 
     public readonly string $baseUrl;
+
+    /**
+     * Base URL for the Messaging Service product (`messaging.voicetel.com`). Derived from
+     * {@see $baseUrl} unless explicitly overridden. {@see \VoiceML\Hosts}.
+     */
+    public readonly string $messagingBaseUrl;
+
+    /**
+     * Base URL for the Conversations product (`conversations.voicetel.com`). Derived from
+     * {@see $baseUrl} unless explicitly overridden. {@see \VoiceML\Hosts}.
+     */
+    public readonly string $conversationsBaseUrl;
+
     public readonly float $timeout;
     public readonly int $maxRetries;
     public readonly string $userAgent;
@@ -33,6 +46,8 @@ final class ClientOptions
         ?int $maxRetries = null,
         ?string $userAgent = null,
         public readonly ?ClientInterface $httpClient = null,
+        ?string $messagingBaseUrl = null,
+        ?string $conversationsBaseUrl = null,
     ) {
         if ($accountSid === '') {
             throw new ConfigurationException('accountSid is required');
@@ -46,7 +61,14 @@ final class ClientOptions
         if (($timeout ?? self::DEFAULT_TIMEOUT) < 0) {
             throw new ConfigurationException('timeout must be >= 0');
         }
-        $this->baseUrl = rtrim($baseUrl ?? self::DEFAULT_BASE_URL, '/');
+        [$default, $messaging, $conversations] = Hosts::resolveProductBaseUrls(
+            $baseUrl ?? self::DEFAULT_BASE_URL,
+            $messagingBaseUrl,
+            $conversationsBaseUrl,
+        );
+        $this->baseUrl = $default;
+        $this->messagingBaseUrl = $messaging;
+        $this->conversationsBaseUrl = $conversations;
         $this->timeout = $timeout ?? self::DEFAULT_TIMEOUT;
         $this->maxRetries = $maxRetries ?? self::DEFAULT_MAX_RETRIES;
         $this->userAgent = $userAgent ?? sprintf('voiceml-php/%s', Version::VERSION);

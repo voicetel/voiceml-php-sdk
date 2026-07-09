@@ -14,7 +14,9 @@ use VoiceML\Resource\ConversationsV1Resource;
 use VoiceML\Resource\DiagnosticsResource;
 use VoiceML\Resource\IncomingPhoneNumbersResource;
 use VoiceML\Resource\MessagesResource;
+use VoiceML\Resource\MessagingV1Resource;
 use VoiceML\Resource\NotificationsResource;
+use VoiceML\Resource\PricingResource;
 use VoiceML\Resource\QueuesResource;
 use VoiceML\Resource\RecordingsResource;
 use VoiceML\Resource\RoutesV2Resource;
@@ -57,6 +59,8 @@ final class Client
     public readonly RoutesV2Resource $routesV2;
     public readonly VoiceV1Resource $voiceV1;
     public readonly ConversationsV1Resource $conversationsV1;
+    public readonly MessagingV1Resource $messagingV1;
+    public readonly PricingResource $pricing;
     public readonly AssistantsV1Resource $assistantsV1;
     public readonly DiagnosticsResource $diagnostics;
 
@@ -72,6 +76,8 @@ final class Client
         ?string $userAgent = null,
         ?ClientInterface $httpClient = null,
         ?string $authToken = null,
+        ?string $messagingBaseUrl = null,
+        ?string $conversationsBaseUrl = null,
     ) {
         if ($apiKey !== null && $authToken !== null) {
             throw new ConfigurationException(
@@ -91,8 +97,16 @@ final class Client
             maxRetries: $maxRetries,
             userAgent: $userAgent,
             httpClient: $httpClient,
+            messagingBaseUrl: $messagingBaseUrl,
+            conversationsBaseUrl: $conversationsBaseUrl,
         );
         $this->transport = new Transport($this->options);
+
+        // Conversations and Messaging Service ride their own product subdomains
+        // (conversations.voicetel.com / messaging.voicetel.com). The scoped
+        // transports share the default transport's HTTP client. See {@see Hosts}.
+        $conversationsTransport = $this->transport->forBaseUrl($this->options->conversationsBaseUrl);
+        $messagingTransport = $this->transport->forBaseUrl($this->options->messagingBaseUrl);
 
         $this->calls = new CallsResource($this->transport);
         $this->conferences = new ConferencesResource($this->transport);
@@ -105,7 +119,9 @@ final class Client
         $this->sip = new SipResource($this->transport);
         $this->routesV2 = new RoutesV2Resource($this->transport);
         $this->voiceV1 = new VoiceV1Resource($this->transport);
-        $this->conversationsV1 = new ConversationsV1Resource($this->transport);
+        $this->conversationsV1 = new ConversationsV1Resource($conversationsTransport);
+        $this->messagingV1 = new MessagingV1Resource($messagingTransport);
+        $this->pricing = new PricingResource($this->transport);
         $this->assistantsV1 = new AssistantsV1Resource($this->transport);
         $this->diagnostics = new DiagnosticsResource($this->transport);
     }
@@ -124,6 +140,8 @@ final class Client
             maxRetries: $options->maxRetries,
             userAgent: $options->userAgent,
             httpClient: $options->httpClient,
+            messagingBaseUrl: $options->messagingBaseUrl,
+            conversationsBaseUrl: $options->conversationsBaseUrl,
         );
     }
 
