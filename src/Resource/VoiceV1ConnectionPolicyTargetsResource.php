@@ -16,12 +16,13 @@ use VoiceML\Transport;
  * {@see VoiceV1ConnectionPoliciesResource::targets()} so the parent sid is
  * captured in one place.
  */
-final class VoiceV1ConnectionPolicyTargetsResource
+final class VoiceV1ConnectionPolicyTargetsResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $connectionPolicySid,
     ) {
+        parent::__construct($transport);
     }
 
     /** @param array<string,mixed>|CreateVoiceV1ConnectionPolicyTargetRequest $body */
@@ -29,7 +30,7 @@ final class VoiceV1ConnectionPolicyTargetsResource
     {
         $form = $body instanceof CreateVoiceV1ConnectionPolicyTargetRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/ConnectionPolicies/{$this->connectionPolicySid}/Targets", null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('ConnectionPolicies', $this->connectionPolicySid, 'Targets'), null, $form);
         return VoiceV1ConnectionPolicyTarget::fromArray($raw);
     }
 
@@ -37,14 +38,14 @@ final class VoiceV1ConnectionPolicyTargetsResource
     public function list(array $query = []): VoiceV1ConnectionPolicyTargetList
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/ConnectionPolicies/{$this->connectionPolicySid}/Targets", $query);
+        $raw = $this->transport->request('GET', $this->v1Path('ConnectionPolicies', $this->connectionPolicySid, 'Targets'), $query);
         return VoiceV1ConnectionPolicyTargetList::fromArray($raw);
     }
 
     public function fetch(string $sid): VoiceV1ConnectionPolicyTarget
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/ConnectionPolicies/{$this->connectionPolicySid}/Targets/{$sid}");
+        $raw = $this->transport->request('GET', $this->v1Path('ConnectionPolicies', $this->connectionPolicySid, 'Targets', $sid));
         return VoiceV1ConnectionPolicyTarget::fromArray($raw);
     }
 
@@ -53,12 +54,12 @@ final class VoiceV1ConnectionPolicyTargetsResource
     {
         $form = $body instanceof UpdateVoiceV1ConnectionPolicyTargetRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/ConnectionPolicies/{$this->connectionPolicySid}/Targets/{$sid}", null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('ConnectionPolicies', $this->connectionPolicySid, 'Targets', $sid), null, $form);
         return VoiceV1ConnectionPolicyTarget::fromArray($raw);
     }
 
     public function delete(string $sid): void
     {
-        $this->transport->request('DELETE', "/v1/ConnectionPolicies/{$this->connectionPolicySid}/Targets/{$sid}");
+        $this->transport->request('DELETE', $this->v1Path('ConnectionPolicies', $this->connectionPolicySid, 'Targets', $sid));
     }
 }

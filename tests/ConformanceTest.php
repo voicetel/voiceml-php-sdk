@@ -77,8 +77,6 @@ final class ConformanceTest extends TestCase
      * are now validated as raw response shapes (mirrors Java's JsonNode and
      * Go's `&map[string]any{}` dispatch).
      */
-    private const SKIP_OPS = [];
-
     /**
      * Sentinel op id used when the fixtures env is unset — guarantees a non-empty data set so
      * PHPUnit 10's strict empty-provider check doesn't error on the unconfigured-CI path.
@@ -104,7 +102,7 @@ final class ConformanceTest extends TestCase
         $entries = json_decode((string) file_get_contents($indexPath), true, flags: JSON_THROW_ON_ERROR);
         foreach ($entries as $entry) {
             $opId = (string) $entry['operation_id'];
-            $name = $entry['resource'] . '/' . $opId . '/' . ($entry['example_name'] ?? '');
+            $name = $entry['resource'] . '/' . $opId . '/' . $entry['example_name'];
             $path = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, (string) $entry['file']);
             yield $name => [$opId, $name, $path];
         }
@@ -115,9 +113,6 @@ final class ConformanceTest extends TestCase
     {
         if ($opId === self::SENTINEL_OP) {
             $this->markTestSkipped(self::FIXTURES_ENV . ' is unset; conformance corpus not loaded');
-        }
-        if (isset(self::SKIP_OPS[$opId])) {
-            $this->markTestSkipped("no SDK model for {$opId}");
         }
         $body = (string) file_get_contents($fixturePath);
         /** @var array<string,mixed> $data */
@@ -516,7 +511,7 @@ final class ConformanceTest extends TestCase
                 break;
 
             default:
-                self::fail("conformance harness: no mapping for operation_id={$opId} (case={$caseName}). Add a case or extend SKIP_OPS.");
+                self::fail("conformance harness: no mapping for operation_id={$opId} (case={$caseName}). Add a case or extend the harness mapping.");
         }
 
         // Suppress static-analysis "unused variable" warning — we use $v

@@ -55,7 +55,7 @@ final class V090Test extends TestCase
     private const POLICY_SID = 'NY00000000000000000000000000000001';
     private const TARGET_SID = 'NE00000000000000000000000000000001';
     private const SIP_DOMAIN_SID = 'SD00000000000000000000000000000001';
-    private const PHONE_NUMBER = '+18005551234';
+    private const PHONE_NUMBER = '+14155550100';
     private const QQ_SID = 'QQ00000000000000000000000000000000';
 
     /**
@@ -124,7 +124,8 @@ final class V090Test extends TestCase
         self::assertSame(self::QQ_SID, $rv->sid);
         self::assertSame('us1', $rv->voiceRegion);
         $fetchUri = (string) $bag['history'][0]['request']->getUri();
-        self::assertStringContainsString('/v2/PhoneNumbers/' . self::PHONE_NUMBER, $fetchUri);
+        self::assertStringContainsString('/v2/PhoneNumbers/' . rawurlencode(self::PHONE_NUMBER), $fetchUri);
+        self::assertStringContainsString('/v2/PhoneNumbers/' . self::PHONE_NUMBER, rawurldecode($fetchUri));
         self::assertStringNotContainsString(self::ACCOUNT_SID, $fetchUri);
 
         $rv2 = $client->routesV2->phoneNumbers->update(
@@ -324,7 +325,7 @@ final class V090Test extends TestCase
         $m = $client->conversationsV1
             ->conversations
             ->messages(self::CONVERSATION_SID)
-            ->create(new CreateConversationsV1ConversationMessageRequest(author: '+15551234567', body: 'Hello'));
+            ->create(new CreateConversationsV1ConversationMessageRequest(author: '+14155550103', body: 'Hello'));
         self::assertSame(self::MESSAGE_SID, $m->sid);
         $uri = (string) $bag['history'][0]['request']->getUri();
         self::assertStringContainsString('/v1/Conversations/' . self::CONVERSATION_SID . '/Messages', $uri);
@@ -537,7 +538,7 @@ final class V090Test extends TestCase
                 'sid' => self::ADDRESS_SID,
                 'account_sid' => self::ACCOUNT_SID,
                 'type' => 'sms',
-                'address' => '+15551234567',
+                'address' => '+14155550103',
                 'date_created' => '2026-06-27T12:00:00Z',
                 'date_updated' => '2026-06-27T12:00:00Z',
                 'url' => 'x',
@@ -559,7 +560,7 @@ final class V090Test extends TestCase
         $whUpd = $client->conversationsV1->configuration->webhooks->update(new UpdateConversationsV1ConfigurationWebhookRequest(preWebhookUrl: 'https://pre'));
         self::assertSame('https://pre', $whUpd->preWebhookUrl);
 
-        $addr = $client->conversationsV1->configuration->addresses->create(['Type' => 'sms', 'Address' => '+15551234567']);
+        $addr = $client->conversationsV1->configuration->addresses->create(['Type' => 'sms', 'Address' => '+14155550103']);
         self::assertSame(self::ADDRESS_SID, $addr->sid);
         self::assertStringContainsString('/v1/Configuration/Addresses', (string) $bag['history'][4]['request']->getUri());
     }

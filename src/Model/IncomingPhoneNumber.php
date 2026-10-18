@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace VoiceML\Model;
 
-use RuntimeException;
-
 /**
  * A DID assigned to the authenticated tenant.
  *
@@ -14,10 +12,12 @@ use RuntimeException;
  * one for the other in URLs.
  *
  * The full Twilio-compat field set (capabilities, regulatory, SMS-channel, emergency,
- * trunking) is surfaced here so strict-binding SDK parity tests can introspect each
- * field. VoiceML emits Twilio-compat defaults — empty string, `false`, or `null` —
+ * trunking) is surfaced here so conformance tests can introspect each field.
+ * VoiceML emits Twilio-compat defaults — empty string, `false`, or `null` —
  * for the fields it doesn't track; reading e.g. `$ipn->capabilities->voice` therefore
- * behaves identically against VoiceML and Twilio.
+ * behaves identically against VoiceML and Twilio. `capabilities` itself is
+ * nullable on the wire; a null decodes to null (not a crash), and a missing
+ * capabilities object yields all-false defaults on read.
  */
 final class IncomingPhoneNumber implements Model
 {
@@ -27,7 +27,7 @@ final class IncomingPhoneNumber implements Model
         public readonly string $phoneNumber,
         public readonly string $apiVersion,
         public readonly string $uri,
-        public readonly IncomingPhoneNumberCapabilities $capabilities,
+        public readonly ?IncomingPhoneNumberCapabilities $capabilities,
         public readonly ?string $friendlyName = null,
         public readonly ?string $voiceUrl = null,
         public readonly ?string $voiceMethod = null,
@@ -57,6 +57,8 @@ final class IncomingPhoneNumber implements Model
         public readonly ?string $emergencyAddressSid = null,
         public readonly ?string $emergencyAddressStatus = null,
         public readonly ?string $status = null,
+        /** @var array<string,string>|null */
+        public readonly ?array $subresourceUris = null,
     ) {
     }
 
@@ -65,10 +67,10 @@ final class IncomingPhoneNumber implements Model
      */
     public static function fromArray(array $data): self
     {
-        if (!isset($data['capabilities']) || !is_array($data['capabilities'])) {
-            throw new RuntimeException(
-                "IncomingPhoneNumber: missing required field 'capabilities'",
-            );
+        /** @var IncomingPhoneNumberCapabilities|null $capabilities */
+        $capabilities = null;
+        if (isset($data['capabilities']) && is_array($data['capabilities'])) {
+            $capabilities = IncomingPhoneNumberCapabilities::fromArray($data['capabilities']);
         }
 
         return new self(
@@ -77,7 +79,7 @@ final class IncomingPhoneNumber implements Model
             phoneNumber: (string) ($data['phone_number'] ?? ''),
             apiVersion: (string) ($data['api_version'] ?? ''),
             uri: (string) ($data['uri'] ?? ''),
-            capabilities: IncomingPhoneNumberCapabilities::fromArray($data['capabilities']),
+            capabilities: $capabilities,
             friendlyName: isset($data['friendly_name']) ? (string) $data['friendly_name'] : null,
             voiceUrl: isset($data['voice_url']) ? (string) $data['voice_url'] : null,
             voiceMethod: isset($data['voice_method']) ? (string) $data['voice_method'] : null,
@@ -107,6 +109,9 @@ final class IncomingPhoneNumber implements Model
             emergencyAddressSid: isset($data['emergency_address_sid']) ? (string) $data['emergency_address_sid'] : null,
             emergencyAddressStatus: isset($data['emergency_address_status']) ? (string) $data['emergency_address_status'] : null,
             status: isset($data['status']) ? (string) $data['status'] : null,
+            subresourceUris: isset($data['subresource_uris']) && is_array($data['subresource_uris'])
+                ? array_map(static fn ($v): string => (string) $v, $data['subresource_uris'])
+                : null,
         );
     }
 }

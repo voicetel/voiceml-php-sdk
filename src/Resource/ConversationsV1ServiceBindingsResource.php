@@ -13,31 +13,32 @@ use VoiceML\Transport;
  * Push Bindings are system-created on device registration; the API exposes
  * list/fetch/delete only.
  */
-final class ConversationsV1ServiceBindingsResource
+final class ConversationsV1ServiceBindingsResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $chatServiceSid,
     ) {
+        parent::__construct($transport);
     }
 
     /** @param array<string,mixed> $query */
     public function list(array $query = []): ConversationsV1ServiceBindingList
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Services/{$this->chatServiceSid}/Bindings", $query);
+        $raw = $this->transport->request('GET', $this->v1Path('Services', $this->chatServiceSid, 'Bindings'), $query);
         return ConversationsV1ServiceBindingList::fromArray($raw);
     }
 
     public function fetch(string $sid): ConversationsV1ServiceBinding
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Services/{$this->chatServiceSid}/Bindings/{$sid}");
+        $raw = $this->transport->request('GET', $this->v1Path('Services', $this->chatServiceSid, 'Bindings', $sid));
         return ConversationsV1ServiceBinding::fromArray($raw);
     }
 
     public function delete(string $sid): void
     {
-        $this->transport->request('DELETE', "/v1/Services/{$this->chatServiceSid}/Bindings/{$sid}");
+        $this->transport->request('DELETE', $this->v1Path('Services', $this->chatServiceSid, 'Bindings', $sid));
     }
 }

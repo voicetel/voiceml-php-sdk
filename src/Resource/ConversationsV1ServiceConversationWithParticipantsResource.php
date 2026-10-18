@@ -12,12 +12,13 @@ use VoiceML\Transport;
  * Create-only convenience `/v1/Services/{ChatServiceSid}/ConversationWithParticipants`.
  * Creates a service-scoped Conversation together with its initial Participants.
  */
-final class ConversationsV1ServiceConversationWithParticipantsResource
+final class ConversationsV1ServiceConversationWithParticipantsResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $chatServiceSid,
     ) {
+        parent::__construct($transport);
     }
 
     /** @param array<string,mixed>|CreateConversationsV1ServiceConversationWithParticipantsRequest $body */
@@ -27,7 +28,7 @@ final class ConversationsV1ServiceConversationWithParticipantsResource
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request(
             'POST',
-            "/v1/Services/{$this->chatServiceSid}/ConversationWithParticipants",
+            $this->v1Path('Services', $this->chatServiceSid, 'ConversationWithParticipants'),
             null,
             $form,
         );

@@ -13,19 +13,20 @@ use VoiceML\Transport;
  * `/v1/Assistants/{id}/Feedbacks` — per-assistant Feedback list + create.
  * Bound to a parent AssistantId.
  */
-final class AssistantsV1AssistantFeedbacksResource
+final class AssistantsV1AssistantFeedbacksResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $assistantId,
     ) {
+        parent::__construct($transport);
     }
 
     /** @param array<string,mixed> $query */
     public function list(array $query = []): AssistantsV1FeedbackList
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Assistants/{$this->assistantId}/Feedbacks", $query);
+        $raw = $this->transport->request('GET', $this->v1Path('Assistants', $this->assistantId, 'Feedbacks'), $query);
         return AssistantsV1FeedbackList::fromArray($raw);
     }
 
@@ -34,7 +35,7 @@ final class AssistantsV1AssistantFeedbacksResource
     {
         $json = $body instanceof CreateAssistantsV1FeedbackRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/Assistants/{$this->assistantId}/Feedbacks", null, null, $json);
+        $raw = $this->transport->request('POST', $this->v1Path('Assistants', $this->assistantId, 'Feedbacks'), null, null, $json);
         return AssistantsV1Feedback::fromArray($raw);
     }
 }

@@ -13,13 +13,14 @@ use VoiceML\Transport;
  * the singleton-style Configuration as well as the nested
  * `webhooks` and `addresses` sub-resources.
  */
-final class ConversationsV1ConfigurationResource
+final class ConversationsV1ConfigurationResource extends Resource
 {
     public readonly ConversationsV1ConfigurationWebhooksResource $webhooks;
     public readonly ConversationsV1ConfigAddressesResource $addresses;
 
-    public function __construct(private readonly Transport $transport)
+    public function __construct(Transport $transport)
     {
+        parent::__construct($transport);
         $this->webhooks = new ConversationsV1ConfigurationWebhooksResource($transport);
         $this->addresses = new ConversationsV1ConfigAddressesResource($transport);
     }
@@ -27,7 +28,7 @@ final class ConversationsV1ConfigurationResource
     public function fetch(): ConversationsV1Configuration
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', '/v1/Configuration');
+        $raw = $this->transport->request('GET', $this->v1Path('Configuration'));
         return ConversationsV1Configuration::fromArray($raw);
     }
 
@@ -36,7 +37,7 @@ final class ConversationsV1ConfigurationResource
     {
         $form = $body instanceof UpdateConversationsV1ConfigurationRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', '/v1/Configuration', null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Configuration'), null, $form);
         return ConversationsV1Configuration::fromArray($raw);
     }
 }

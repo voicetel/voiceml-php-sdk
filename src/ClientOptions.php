@@ -39,7 +39,9 @@ final class ClientOptions
     public readonly string $userAgent;
 
     public function __construct(
+        #[\SensitiveParameter]
         public readonly string $accountSid,
+        #[\SensitiveParameter]
         public readonly string $apiKey,
         ?string $baseUrl = null,
         ?float $timeout = null,
@@ -72,5 +74,32 @@ final class ClientOptions
         $this->timeout = $timeout ?? self::DEFAULT_TIMEOUT;
         $this->maxRetries = $maxRetries ?? self::DEFAULT_MAX_RETRIES;
         $this->userAgent = $userAgent ?? sprintf('voiceml-php/%s', Version::VERSION);
+    }
+
+    /**
+     * Redact the API key from var_dump()/print_r() output so a debug statement
+     * never leaks the credential into logs.
+     *
+     * @return array<string,mixed>
+     */
+    public function __debugInfo(): array
+    {
+        return [
+            'accountSid' => $this->accountSid,
+            'apiKey' => '***',
+            'baseUrl' => $this->baseUrl,
+            'messagingBaseUrl' => $this->messagingBaseUrl,
+            'conversationsBaseUrl' => $this->conversationsBaseUrl,
+            'timeout' => $this->timeout,
+            'maxRetries' => $this->maxRetries,
+            'userAgent' => $this->userAgent,
+            'httpClient' => $this->httpClient === null ? null : get_class($this->httpClient),
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    public function __serialize(): array
+    {
+        return $this->__debugInfo();
     }
 }

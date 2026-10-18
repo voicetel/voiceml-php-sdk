@@ -13,8 +13,6 @@ final class ApplicationList extends Page
         public readonly array $applications = [],
         ?int $page = 0,
         ?int $pageSize = null,
-        ?int $numPages = null,
-        ?int $total = null,
         ?int $start = null,
         ?int $end = null,
         ?string $firstPageUri = null,
@@ -25,8 +23,6 @@ final class ApplicationList extends Page
         parent::__construct(
             $page,
             $pageSize,
-            $numPages,
-            $total,
             $start,
             $end,
             $firstPageUri,
@@ -50,13 +46,11 @@ final class ApplicationList extends Page
                 }
             }
         }
-        [$page, $pageSize, $numPages, $total, $start, $end, $firstPageUri, $nextPageUri, $previousPageUri, $uri] = self::pageFields($data);
+        [$page, $pageSize, $start, $end, $firstPageUri, $nextPageUri, $previousPageUri, $uri] = self::pageFields($data);
         return new self(
             applications: $apps,
             page: $page,
             pageSize: $pageSize,
-            numPages: $numPages,
-            total: $total,
             start: $start,
             end: $end,
             firstPageUri: $firstPageUri,

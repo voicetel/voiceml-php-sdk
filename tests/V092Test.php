@@ -16,6 +16,10 @@ use VoiceML\Model\CreateMessagingServiceRequest;
 use VoiceML\Model\MessagingService;
 use VoiceML\Model\UpdateMessagingServiceRequest;
 use VoiceML\Resource\MessagingV1Resource;
+use VoiceML\Resource\PricingCountriesResource;
+use VoiceML\Resource\PricingVoiceNumbersV1Resource;
+use VoiceML\Resource\PricingVoiceNumbersV2Resource;
+use VoiceML\Resource\PricingTrunkingNumbersV2Resource;
 use VoiceML\Resource\PricingResource;
 
 /**
@@ -142,14 +146,14 @@ final class V092Test extends TestCase
         self::assertInstanceOf(MessagingV1Resource::class, $client->messagingV1);
         self::assertInstanceOf(PricingResource::class, $client->pricing);
         // Deep wiring: every pricing product group resolves.
-        self::assertNotNull($client->pricing->v1->voice->countries);
-        self::assertNotNull($client->pricing->v1->voice->numbers);
-        self::assertNotNull($client->pricing->v1->messaging->countries);
-        self::assertNotNull($client->pricing->v1->phoneNumbers->countries);
-        self::assertNotNull($client->pricing->v2->voice->countries);
-        self::assertNotNull($client->pricing->v2->voice->numbers);
-        self::assertNotNull($client->pricing->v2->trunking->countries);
-        self::assertNotNull($client->pricing->v2->trunking->numbers);
+        self::assertInstanceOf(PricingCountriesResource::class, $client->pricing->v1->voice->countries);
+        self::assertInstanceOf(PricingVoiceNumbersV1Resource::class, $client->pricing->v1->voice->numbers);
+        self::assertInstanceOf(PricingCountriesResource::class, $client->pricing->v1->messaging->countries);
+        self::assertInstanceOf(PricingCountriesResource::class, $client->pricing->v1->phoneNumbers->countries);
+        self::assertInstanceOf(PricingCountriesResource::class, $client->pricing->v2->voice->countries);
+        self::assertInstanceOf(PricingVoiceNumbersV2Resource::class, $client->pricing->v2->voice->numbers);
+        self::assertInstanceOf(PricingCountriesResource::class, $client->pricing->v2->trunking->countries);
+        self::assertInstanceOf(PricingTrunkingNumbersV2Resource::class, $client->pricing->v2->trunking->numbers);
     }
 
     // -----------------------------------------------------------------------
@@ -258,7 +262,7 @@ final class V092Test extends TestCase
             'url' => self::BASE . '/v1/Voice/Countries/US',
         ];
         $number = [
-            'number' => '+18005551234',
+            'number' => '+14155550100',
             'country' => 'United States',
             'iso_country' => 'US',
             'outbound_call_price' => ['base_price' => '0.013', 'current_price' => '0.013'],
@@ -268,7 +272,7 @@ final class V092Test extends TestCase
                 'number_type' => 'toll free',
             ],
             'price_unit' => 'USD',
-            'url' => self::BASE . '/v1/Voice/Numbers/+18005551234',
+            'url' => self::BASE . '/v1/Voice/Numbers/+14155550100',
         ];
         $bag = $this->makeClient([
             $this->jsonResponse($countries),
@@ -284,20 +288,20 @@ final class V092Test extends TestCase
         self::assertInstanceOf(\VoiceML\Model\PricingVoiceCountry::class, $fetched);
         self::assertSame(['1'], $fetched->outboundPrefixPrices[0]->prefixes);
 
-        $num = $client->pricing->v1->voice->numbers->fetch('+18005551234');
+        $num = $client->pricing->v1->voice->numbers->fetch('+14155550100');
         self::assertSame('toll free', $num->inboundCallPrice?->numberType);
 
         foreach ($bag['history'] as $entry) {
             self::assertSame('voiceml.voicetel.com', $entry['request']->getUri()->getHost());
         }
         // E.164 `+` is percent-encoded in the number path segment.
-        self::assertStringContainsString('%2B18005551234', (string) $bag['history'][2]['request']->getUri());
+        self::assertStringContainsString('%2B14155550100', (string) $bag['history'][2]['request']->getUri());
     }
 
     public function testPricingV2VoiceNumberWithOrigination(): void
     {
         $payload = [
-            'destination_number' => '+18005551234',
+            'destination_number' => '+14155550100',
             'origination_number' => '+15551112222',
             'country' => 'United States',
             'iso_country' => 'US',
@@ -312,16 +316,16 @@ final class V092Test extends TestCase
                 'number_type' => 'local',
             ],
             'price_unit' => 'USD',
-            'url' => self::BASE . '/v2/Voice/Numbers/+18005551234',
+            'url' => self::BASE . '/v2/Voice/Numbers/+14155550100',
         ];
         $bag = $this->makeClient([$this->jsonResponse($payload)]);
 
-        $got = $bag['client']->pricing->v2->voice->numbers->fetch('+18005551234', '+15551112222');
+        $got = $bag['client']->pricing->v2->voice->numbers->fetch('+14155550100', '+15551112222');
         self::assertSame('+15551112222', $got->originationNumber);
         self::assertSame(['1'], $got->outboundCallPrices[0]->originationPrefixes);
 
         $uri = (string) $bag['history'][0]['request']->getUri();
-        self::assertStringContainsString('/v2/Voice/Numbers/%2B18005551234', $uri);
+        self::assertStringContainsString('/v2/Voice/Numbers/%2B14155550100', $uri);
         self::assertStringContainsString('OriginationNumber=%2B15551112222', $uri);
     }
 

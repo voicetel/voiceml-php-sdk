@@ -14,13 +14,14 @@ use VoiceML\Transport;
  * `/v1/Services/{ChatServiceSid}/Conversations/{ConversationSid}/Webhooks`.
  * Produced via {@see ConversationsV1ServiceConversationsResource::webhooks()}.
  */
-final class ConversationsV1ServiceConversationWebhooksResource
+final class ConversationsV1ServiceConversationWebhooksResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $chatServiceSid,
         private readonly string $conversationSid,
     ) {
+        parent::__construct($transport);
     }
 
     /** @param array<string,mixed>|CreateConversationsV1ServiceConversationScopedWebhookRequest $body */
@@ -28,7 +29,7 @@ final class ConversationsV1ServiceConversationWebhooksResource
     {
         $form = $body instanceof CreateConversationsV1ServiceConversationScopedWebhookRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/Services/{$this->chatServiceSid}/Conversations/{$this->conversationSid}/Webhooks", null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Services', $this->chatServiceSid, 'Conversations', $this->conversationSid, 'Webhooks'), null, $form);
         return ConversationsV1ServiceConversationScopedWebhook::fromArray($raw);
     }
 
@@ -36,14 +37,14 @@ final class ConversationsV1ServiceConversationWebhooksResource
     public function list(array $query = []): ConversationsV1ServiceConversationScopedWebhookList
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Services/{$this->chatServiceSid}/Conversations/{$this->conversationSid}/Webhooks", $query);
+        $raw = $this->transport->request('GET', $this->v1Path('Services', $this->chatServiceSid, 'Conversations', $this->conversationSid, 'Webhooks'), $query);
         return ConversationsV1ServiceConversationScopedWebhookList::fromArray($raw);
     }
 
     public function fetch(string $sid): ConversationsV1ServiceConversationScopedWebhook
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Services/{$this->chatServiceSid}/Conversations/{$this->conversationSid}/Webhooks/{$sid}");
+        $raw = $this->transport->request('GET', $this->v1Path('Services', $this->chatServiceSid, 'Conversations', $this->conversationSid, 'Webhooks', $sid));
         return ConversationsV1ServiceConversationScopedWebhook::fromArray($raw);
     }
 
@@ -52,12 +53,12 @@ final class ConversationsV1ServiceConversationWebhooksResource
     {
         $form = $body instanceof UpdateConversationsV1ServiceConversationScopedWebhookRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/Services/{$this->chatServiceSid}/Conversations/{$this->conversationSid}/Webhooks/{$sid}", null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Services', $this->chatServiceSid, 'Conversations', $this->conversationSid, 'Webhooks', $sid), null, $form);
         return ConversationsV1ServiceConversationScopedWebhook::fromArray($raw);
     }
 
     public function delete(string $sid): void
     {
-        $this->transport->request('DELETE', "/v1/Services/{$this->chatServiceSid}/Conversations/{$this->conversationSid}/Webhooks/{$sid}");
+        $this->transport->request('DELETE', $this->v1Path('Services', $this->chatServiceSid, 'Conversations', $this->conversationSid, 'Webhooks', $sid));
     }
 }

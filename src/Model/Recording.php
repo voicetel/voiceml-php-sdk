@@ -30,6 +30,7 @@ final class Recording implements Model
         public readonly ?array $subresourceUris = null,
         public readonly ?string $mediaUrl = null,
         public readonly ?int $errorCode = null,
+        public readonly ?string $track = null,
     ) {
     }
 
@@ -69,6 +70,7 @@ final class Recording implements Model
             errorCode: array_key_exists('error_code', $data) && $data['error_code'] !== null
                 ? (int) $data['error_code']
                 : null,
+            track: isset($data['track']) ? (string) $data['track'] : null,
         );
     }
 }

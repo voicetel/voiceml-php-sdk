@@ -8,7 +8,6 @@ use VoiceML\Model\CreateMessagingServiceRequest;
 use VoiceML\Model\MessagingService;
 use VoiceML\Model\MessagingServiceList;
 use VoiceML\Model\UpdateMessagingServiceRequest;
-use VoiceML\Transport;
 
 /**
  * `/v1/Services` — Twilio Messaging v1 Services (`MG…`).
@@ -20,18 +19,14 @@ use VoiceML\Transport;
  * `create` / `list` / `fetch` / `delete` reuse the shared path; `update`
  * (`POST /v1/Services/{sid}`) is unique to Messaging Service.
  */
-final class MessagingV1ServicesResource
+final class MessagingV1ServicesResource extends Resource
 {
-    public function __construct(private readonly Transport $transport)
-    {
-    }
-
     /** @param array<string,mixed>|CreateMessagingServiceRequest $body */
     public function create(array|CreateMessagingServiceRequest $body): MessagingService
     {
         $form = $body instanceof CreateMessagingServiceRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', '/v1/Services', null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Services'), null, $form);
         return MessagingService::fromArray($raw);
     }
 
@@ -39,14 +34,14 @@ final class MessagingV1ServicesResource
     public function list(array $query = []): MessagingServiceList
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', '/v1/Services', $query);
+        $raw = $this->transport->request('GET', $this->v1Path('Services'), $query);
         return MessagingServiceList::fromArray($raw);
     }
 
     public function fetch(string $sid): MessagingService
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Services/{$sid}");
+        $raw = $this->transport->request('GET', $this->v1Path('Services', $sid));
         return MessagingService::fromArray($raw);
     }
 
@@ -55,12 +50,20 @@ final class MessagingV1ServicesResource
     {
         $form = $body instanceof UpdateMessagingServiceRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/Services/{$sid}", null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Services', $sid), null, $form);
         return MessagingService::fromArray($raw);
     }
 
     public function delete(string $sid): void
     {
-        $this->transport->request('DELETE', "/v1/Services/{$sid}");
+        $this->transport->request('DELETE', $this->v1Path('Services', $sid));
+    }
+
+    /**
+     * A service's sender pool (`/v1/Services/{sid}/PhoneNumbers`).
+     */
+    public function phoneNumbers(string $chatServiceSid): MessagingV1ServicePhoneNumbersResource
+    {
+        return new MessagingV1ServicePhoneNumbersResource($this->transport, $chatServiceSid);
     }
 }

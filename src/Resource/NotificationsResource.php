@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace VoiceML\Resource;
 
 use VoiceML\Model\ListNotificationsParams;
+use VoiceML\Model\Notification;
 use VoiceML\Model\NotificationsList;
 
 /**
@@ -20,20 +21,19 @@ final class NotificationsResource extends Resource
         return NotificationsList::fromArray($raw);
     }
 
-    /**
-     * @return array<string,mixed>
-     */
-    public function get(string $notificationSid): array
+    public function get(string $notificationSid): Notification
     {
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request('GET', $this->path('Notifications', $notificationSid));
-        return $raw;
+        return Notification::fromArray($raw);
     }
 
     /**
-     * Generator that lazily walks all pages of `/Notifications`, yielding one item at a time.
+     * Generator that lazily walks all pages of `/Notifications`, yielding one
+     * Notification at a time. Follows `next_page_uri` verbatim; stopping the
+     * generator early makes no further requests.
      *
-     * @return \Generator<int, mixed>
+     * @return \Generator<int, Notification>
      */
     public function iterate(
         ?int $log = null,
@@ -42,23 +42,39 @@ final class NotificationsResource extends Resource
         ?string $messageDateGt = null,
         ?int $pageSize = null,
     ): \Generator {
-        $page = 0;
+        $page = $this->list(new ListNotificationsParams(
+            pageSize: $pageSize,
+            log: $log,
+            messageDate: $messageDate,
+            messageDateLt: $messageDateLt,
+            messageDateGt: $messageDateGt,
+        ));
         while (true) {
-            $chunk = $this->list(new ListNotificationsParams(
-                page: $page,
-                pageSize: $pageSize,
-                log: $log,
-                messageDate: $messageDate,
-                messageDateLt: $messageDateLt,
-                messageDateGt: $messageDateGt,
-            ));
-            foreach ($chunk->notifications as $notification) {
+            foreach ($page->notifications as $notification) {
                 yield $notification;
             }
-            if ($chunk->notifications === []) {
+            if ($page->nextPageUri === null || $page->nextPageUri === '' || $page->notifications === []) {
                 return;
             }
-            $page++;
+            $next = $this->nextPage($page);
+            if ($next === null) {
+                return;
+            }
+            $page = $next;
         }
+    }
+
+    /**
+     * Fetch the page a previous result's `next_page_uri` points at, following
+     * the link verbatim. Returns null on the last page.
+     */
+    public function nextPage(NotificationsList $page): ?NotificationsList
+    {
+        if ($page->nextPageUri === null || $page->nextPageUri === '') {
+            return null;
+        }
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->requestPageUri($page->nextPageUri);
+        return NotificationsList::fromArray($raw);
     }
 }

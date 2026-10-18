@@ -4,18 +4,14 @@ declare(strict_types=1);
 
 namespace VoiceML\Model;
 
-use RuntimeException;
-
 /**
  * Twilio-compatible sub-object on {@see IncomingPhoneNumber}. Indicates which channel
- * types a DID supports. `voice`/`sms`/`mms` are REQUIRED — a missing field is a
- * protocol error and causes {@see fromArray()} to throw. `fax` is OPTIONAL/nullable:
- * Twilio's canonical Local/Mobile/TollFree list responses omit it entirely (only the
- * top-level IncomingPhoneNumber Create/Fetch/List shapes carry it). `null` means the
- * field was absent on the wire; do not conflate with `false`.
+ * types a DID supports. Absent or null fields decode as `false` (or `null` for fax,
+ * which only the top-level IncomingPhoneNumber shapes carry) — the server may
+ * legitimately emit `capabilities: null` or partial objects, and reading a flag
+ * must never crash hydration.
  *
  * VoiceML is voice-only — production responses emit `voice=true` and the rest `false`.
- * The full set is modelled so strict-binding SDK conformance tests can introspect each flag.
  */
 final class IncomingPhoneNumberCapabilities implements Model
 {
@@ -32,19 +28,17 @@ final class IncomingPhoneNumberCapabilities implements Model
      */
     public static function fromArray(array $data): self
     {
-        foreach (['voice', 'sms', 'mms'] as $key) {
-            if (!array_key_exists($key, $data)) {
-                throw new RuntimeException(
-                    "IncomingPhoneNumberCapabilities: missing required field '{$key}'",
-                );
-            }
-        }
-
         return new self(
-            voice: (bool) $data['voice'],
-            sms: (bool) $data['sms'],
-            mms: (bool) $data['mms'],
+            voice: self::boolOrDefault($data, 'voice'),
+            sms: self::boolOrDefault($data, 'sms'),
+            mms: self::boolOrDefault($data, 'mms'),
             fax: array_key_exists('fax', $data) && $data['fax'] !== null ? (bool) $data['fax'] : null,
         );
+    }
+
+    /** @param array<string,mixed> $data */
+    private static function boolOrDefault(array $data, string $key): bool
+    {
+        return array_key_exists($key, $data) && $data[$key] !== null ? (bool) $data[$key] : false;
     }
 }

@@ -50,26 +50,44 @@ final class ApplicationsResource extends Resource
     }
 
     /**
-     * Generator that lazily walks all pages of `/Applications`, yielding one Application at a time.
+     * Fetch the page a previous result's `next_page_uri` points at, following
+     * the link verbatim. Returns null on the last page.
+     */
+    public function nextPage(ApplicationList $page): ?ApplicationList
+    {
+        if ($page->nextPageUri === null || $page->nextPageUri === '') {
+            return null;
+        }
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->requestPageUri($page->nextPageUri);
+        return ApplicationList::fromArray($raw);
+    }
+
+    /**
+     * Generator that lazily walks all pages of `/Applications`, yielding one
+     * Application at a time. Follows `next_page_uri` verbatim; stopping the
+     * generator early makes no further requests.
      *
      * @return \Generator<int, Application>
      */
     public function iterate(?string $friendlyName = null, ?int $pageSize = null): \Generator
     {
-        $page = 0;
+        $page = $this->list(new ListApplicationsParams(
+            friendlyName: $friendlyName,
+            pageSize: $pageSize,
+        ));
         while (true) {
-            $chunk = $this->list(new ListApplicationsParams(
-                friendlyName: $friendlyName,
-                page: $page,
-                pageSize: $pageSize,
-            ));
-            foreach ($chunk->applications as $application) {
+            foreach ($page->applications as $application) {
                 yield $application;
             }
-            if (($chunk->nextPageUri ?? null) === null || $chunk->applications === []) {
+            if ($page->nextPageUri === null || $page->nextPageUri === '' || $page->applications === []) {
                 return;
             }
-            $page++;
+            $next = $this->nextPage($page);
+            if ($next === null) {
+                return;
+            }
+            $page = $next;
         }
     }
 }

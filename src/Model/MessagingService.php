@@ -37,6 +37,7 @@ final class MessagingService implements Model
         public readonly ?string $url = null,
         public readonly ?string $usecase = null,
         public readonly ?bool $useInboundWebhookOnNumber = null,
+        public readonly ?bool $advancedOptOut = null,
     ) {
     }
 
@@ -67,6 +68,7 @@ final class MessagingService implements Model
             useInboundWebhookOnNumber: isset($data['use_inbound_webhook_on_number'])
                 ? (bool) $data['use_inbound_webhook_on_number']
                 : null,
+            advancedOptOut: isset($data['advanced_opt_out']) ? (bool) $data['advanced_opt_out'] : null,
         );
     }
 }

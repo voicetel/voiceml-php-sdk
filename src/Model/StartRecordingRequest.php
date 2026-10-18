@@ -12,6 +12,7 @@ final class StartRecordingRequest extends FormRequest
     public function __construct(
         public readonly ?int $recordingMaxDuration = null,
         public readonly ?string $recordingChannels = null,
+        public readonly ?string $recordingTrack = null,
         public readonly ?bool $playBeep = null,
         public readonly ?string $recordingStatusCallback = null,
         public readonly ?string $recordingStatusCallbackMethod = null,
@@ -24,6 +25,7 @@ final class StartRecordingRequest extends FormRequest
         return [
             'RecordingMaxDuration' => 'recordingMaxDuration',
             'RecordingChannels' => 'recordingChannels',
+            'RecordingTrack' => 'recordingTrack',
             'PlayBeep' => 'playBeep',
             'RecordingStatusCallback' => 'recordingStatusCallback',
             'RecordingStatusCallbackMethod' => 'recordingStatusCallbackMethod',

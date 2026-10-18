@@ -8,7 +8,7 @@ namespace VoiceML\Model;
  * Recordings list response.
  *
  * The account-scoped endpoint (`GET /Recordings`) returns the full Twilio-compatible pagination fields
- * (`recordings/page/page_size/total`). Per-call (`GET /Calls/{sid}/Recordings`) and
+ * (`recordings/page/page_size/start/end`). Per-call (`GET /Calls/{sid}/Recordings`) and
  * per-conference (`GET /Conferences/{sid}/Recordings`) endpoints currently return only
  * `recordings` — the other pagination fields will be `null`.
  */
@@ -21,8 +21,8 @@ final class RecordingList implements Model
         public readonly array $recordings = [],
         public readonly ?int $page = null,
         public readonly ?int $pageSize = null,
-        public readonly ?int $total = null,
-        public readonly ?int $numPages = null,
+        public readonly ?int $start = null,
+        public readonly ?int $end = null,
         public readonly ?string $firstPageUri = null,
         public readonly ?string $nextPageUri = null,
         public readonly ?string $previousPageUri = null,
@@ -48,8 +48,8 @@ final class RecordingList implements Model
             recordings: $items,
             page: isset($data['page']) ? (int) $data['page'] : null,
             pageSize: isset($data['page_size']) ? (int) $data['page_size'] : null,
-            total: isset($data['total']) ? (int) $data['total'] : null,
-            numPages: isset($data['num_pages']) ? (int) $data['num_pages'] : null,
+            start: isset($data['start']) ? (int) $data['start'] : null,
+            end: isset($data['end']) ? (int) $data['end'] : null,
             firstPageUri: isset($data['first_page_uri']) ? (string) $data['first_page_uri'] : null,
             nextPageUri: isset($data['next_page_uri']) ? (string) $data['next_page_uri'] : null,
             previousPageUri: isset($data['previous_page_uri']) ? (string) $data['previous_page_uri'] : null,

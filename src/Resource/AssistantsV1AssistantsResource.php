@@ -9,21 +9,17 @@ use VoiceML\Model\AssistantsV1AssistantList;
 use VoiceML\Model\AssistantsV1AssistantWithToolsAndKnowledge;
 use VoiceML\Model\CreateAssistantsV1AssistantRequest;
 use VoiceML\Model\UpdateAssistantsV1AssistantRequest;
-use VoiceML\Transport;
 
 /** `/v1/Assistants` — Assistants v1 top-level CRUD. JSON request bodies. */
-final class AssistantsV1AssistantsResource
+final class AssistantsV1AssistantsResource extends Resource
 {
-    public function __construct(private readonly Transport $transport)
-    {
-    }
 
     /** @param array<string,mixed>|CreateAssistantsV1AssistantRequest $body */
     public function create(array|CreateAssistantsV1AssistantRequest $body): AssistantsV1Assistant
     {
         $json = $body instanceof CreateAssistantsV1AssistantRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', '/v1/Assistants', null, null, $json);
+        $raw = $this->transport->request('POST', $this->v1Path('Assistants'), null, null, $json);
         return AssistantsV1Assistant::fromArray($raw);
     }
 
@@ -31,14 +27,14 @@ final class AssistantsV1AssistantsResource
     public function list(array $query = []): AssistantsV1AssistantList
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', '/v1/Assistants', $query);
+        $raw = $this->transport->request('GET', $this->v1Path('Assistants'), $query);
         return AssistantsV1AssistantList::fromArray($raw);
     }
 
     public function fetch(string $assistantId): AssistantsV1AssistantWithToolsAndKnowledge
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Assistants/{$assistantId}");
+        $raw = $this->transport->request('GET', $this->v1Path('Assistants', $assistantId));
         return AssistantsV1AssistantWithToolsAndKnowledge::fromArray($raw);
     }
 
@@ -47,12 +43,12 @@ final class AssistantsV1AssistantsResource
     {
         $json = $body instanceof UpdateAssistantsV1AssistantRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('PUT', "/v1/Assistants/{$assistantId}", null, null, $json);
+        $raw = $this->transport->request('PUT', $this->v1Path('Assistants', $assistantId), null, null, $json);
         return AssistantsV1Assistant::fromArray($raw);
     }
 
     public function delete(string $assistantId): void
     {
-        $this->transport->request('DELETE', "/v1/Assistants/{$assistantId}");
+        $this->transport->request('DELETE', $this->v1Path('Assistants', $assistantId));
     }
 }

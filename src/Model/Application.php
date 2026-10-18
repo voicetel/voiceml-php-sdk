@@ -22,6 +22,12 @@ final class Application implements Model
         public readonly ?string $statusCallback = null,
         public readonly ?string $statusCallbackMethod = null,
         public readonly ?string $statusCallbackEvent = null,
+        public readonly ?string $smsUrl = null,
+        public readonly ?string $smsMethod = null,
+        public readonly ?string $smsFallbackUrl = null,
+        public readonly ?string $smsFallbackMethod = null,
+        public readonly ?string $messageStatusCallback = null,
+        public readonly ?string $smsStatusCallback = null,
     ) {
     }
 
@@ -46,6 +52,12 @@ final class Application implements Model
             statusCallback: isset($data['status_callback']) ? (string) $data['status_callback'] : null,
             statusCallbackMethod: isset($data['status_callback_method']) ? (string) $data['status_callback_method'] : null,
             statusCallbackEvent: isset($data['status_callback_event']) ? (string) $data['status_callback_event'] : null,
+            smsUrl: isset($data['sms_url']) ? (string) $data['sms_url'] : null,
+            smsMethod: isset($data['sms_method']) ? (string) $data['sms_method'] : null,
+            smsFallbackUrl: isset($data['sms_fallback_url']) ? (string) $data['sms_fallback_url'] : null,
+            smsFallbackMethod: isset($data['sms_fallback_method']) ? (string) $data['sms_fallback_method'] : null,
+            messageStatusCallback: isset($data['message_status_callback']) ? (string) $data['message_status_callback'] : null,
+            smsStatusCallback: isset($data['sms_status_callback']) ? (string) $data['sms_status_callback'] : null,
         );
     }
 }

@@ -15,8 +15,9 @@ use VoiceML\Model\Participant;
 use VoiceML\Model\ParticipantList;
 use VoiceML\Model\Recording;
 use VoiceML\Model\RecordingList;
+use VoiceML\Model\StartConferenceRecordingRequest;
 use VoiceML\Model\UpdateParticipantRequest;
-use VoiceML\Model\UpdateRecordingRequest;
+use VoiceML\Model\UpdateConferenceRecordingRequest;
 
 /**
  * `/Conferences` and `/Conferences/{sid}/Participants`, `/Conferences/{sid}/Recordings`.
@@ -128,7 +129,7 @@ final class ConferencesResource extends Resource
     public function updateRecording(
         string $conferenceSid,
         string $recordingSid,
-        UpdateRecordingRequest $body,
+        UpdateConferenceRecordingRequest $body,
     ): Recording {
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request(
@@ -149,42 +150,58 @@ final class ConferencesResource extends Resource
     }
 
     /**
-     * Generator that lazily walks all pages of `/Conferences`, yielding one Conference at a time.
+     * Start recording a conference (`POST /Conferences/{sid}/Recordings`).
+     */
+    public function startRecording(
+        string $conferenceSid,
+        ?StartConferenceRecordingRequest $body = null,
+    ): Recording {
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->request(
+            'POST',
+            $this->path('Conferences', $conferenceSid, 'Recordings'),
+            null,
+            $body !== null ? $body->toForm() : null,
+        );
+        return Recording::fromArray($raw);
+    }
+
+    /**
+     * Fetch the page a previous result's `next_page_uri` points at, following
+     * the link verbatim. Returns null on the last page.
+     */
+    public function nextPage(ConferenceList $page): ?ConferenceList
+    {
+        if ($page->nextPageUri === null || $page->nextPageUri === '') {
+            return null;
+        }
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->requestPageUri($page->nextPageUri);
+        return ConferenceList::fromArray($raw);
+    }
+
+    /**
+     * Generator that lazily walks all pages of `/Conferences`, yielding one
+     * Conference at a time. Follows `next_page_uri` verbatim; stopping the
+     * generator early makes no further requests.
      *
      * @return \Generator<int, Conference>
      */
-    public function iterate(
-        ?string $friendlyName = null,
-        ?string $status = null,
-        ?string $dateCreated = null,
-        ?string $dateCreatedLt = null,
-        ?string $dateCreatedGt = null,
-        ?string $dateUpdated = null,
-        ?string $dateUpdatedLt = null,
-        ?string $dateUpdatedGt = null,
-        ?int $pageSize = null,
-    ): \Generator {
-        $page = 0;
+    public function iterate(?ListConferencesParams $params = null): \Generator
+    {
+        $page = $this->list($params);
         while (true) {
-            $chunk = $this->list(new ListConferencesParams(
-                friendlyName: $friendlyName,
-                status: $status,
-                dateCreated: $dateCreated,
-                dateCreatedLt: $dateCreatedLt,
-                dateCreatedGt: $dateCreatedGt,
-                dateUpdated: $dateUpdated,
-                dateUpdatedLt: $dateUpdatedLt,
-                dateUpdatedGt: $dateUpdatedGt,
-                page: $page,
-                pageSize: $pageSize,
-            ));
-            foreach ($chunk->conferences as $conference) {
+            foreach ($page->conferences as $conference) {
                 yield $conference;
             }
-            if (($chunk->nextPageUri ?? null) === null || $chunk->conferences === []) {
+            if ($page->nextPageUri === null || $page->nextPageUri === '' || $page->conferences === []) {
                 return;
             }
-            $page++;
+            $next = $this->nextPage($page);
+            if ($next === null) {
+                return;
+            }
+            $page = $next;
         }
     }
 }

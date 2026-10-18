@@ -5,9 +5,15 @@ declare(strict_types=1);
 namespace VoiceML\Resource;
 
 use VoiceML\Transport;
+use VoiceML\Model\Model;
 
 /**
- * Mixin holding a {@see Transport} reference + helpers for AccountSid pathing.
+ * Mixin holding a {@see Transport} reference + path-building helpers.
+ *
+ * Every caller-supplied path segment is percent-encoded once, here, keeping
+ * the RFC 3986 unreserved set (`A-Z a-z 0-9 - . _ ~`): `+`→`%2B`,
+ * space→`%20`, `/`→`%2F`, `?`→`%3F`, `#`→`%23`, `%`→`%25`. Resources never
+ * encode segments themselves.
  */
 abstract class Resource
 {
@@ -16,15 +22,47 @@ abstract class Resource
     }
 
     /**
-     * Build a URL under `/2010-04-01/Accounts/{AccountSid}/…`.
+     * Fetch either list-envelope style's next link on this product origin.
+     * @return Model|null A new instance of the same list model.
+     */
+    public function fetchNextPage(Model $page): ?Model
+    {
+        $uri = property_exists($page, 'nextPageUri') ? $page->nextPageUri : null;
+        if (property_exists($page, 'meta') && $page->meta !== null) {
+            $uri = $page->meta->nextPageUrl;
+        }
+        if (!is_string($uri) || $uri === '') {
+            return null;
+        }
+        $raw = $this->transport->requestPageUri($uri);
+        if (!is_array($raw)) {
+            throw new \VoiceML\Exception\ApiException('could not decode page object', statusCode: 0);
+        }
+        $decoder = [$page, 'fromArray'];
+        if (!is_callable($decoder)) {
+            throw new \VoiceML\Exception\ApiException('model has no page decoder', statusCode: 0);
+        }
+
+        /** @var callable(array<string,mixed>): Model $decoder */
+        return $decoder($raw);
+    }
+
+    /**
+     * Encode a single path segment per RFC 3986.
+     */
+    protected static function encodeSegment(string $segment): string
+    {
+        return rawurlencode($segment);
+    }
+
+    /**
+     * Build a URL under `/2010-04-01/Accounts/{AccountSid}/…` with the `.json`
+     * suffix the account-scoped REST surface requires.
      *
-     * Callers pass path segments (e.g. `"Calls"`, sid, `"Recordings"`). Empty segments are
-     * skipped; nothing is URL-encoded — callers should pass sids and slugs that don't need
-     * escaping (Twilio sids never do).
-     *
-     * The final segment is suffixed with `.json` to match Twilio's wire convention (and the
-     * v0.5.x server spec, which requires it). Binary fetches such as `Recordings/{sid}.wav`
-     * append their own `.wav` extension via {@see pathRaw()} and bypass the `.json` suffix.
+     * Callers pass path segments (e.g. `"Calls"`, sid, `"Recordings"`). Empty
+     * segments are skipped; every segment is percent-encoded (see
+     * {@see encodeSegment()}). Binary fetches such as `Recordings/{sid}.wav`
+     * append their own `.wav` extension via {@see pathRaw()}.
      */
     protected function path(string ...$parts): string
     {
@@ -32,15 +70,49 @@ abstract class Resource
     }
 
     /**
-     * Build a URL under `/2010-04-01/Accounts/{AccountSid}/…` without the `.json` suffix.
+     * Build a URL under `/2010-04-01/Accounts/{AccountSid}/…` without the
+     * `.json` suffix.
      *
-     * Use this for endpoints that take a different extension (`.wav` for recording audio) or
-     * for the small set of unsuffixed compatibility paths. Account-scoped REST endpoints
-     * should use {@see path()} instead.
+     * Used for endpoints that take a different extension (`.wav` recording
+     * audio, `Exports/{Date}`) and binary downloads.
      */
     protected function pathRaw(string ...$parts): string
     {
-        $tail = implode('/', array_filter($parts, static fn (string $p): bool => $p !== ''));
-        return sprintf('/2010-04-01/Accounts/%s/%s', $this->transport->accountSid(), $tail);
+        return sprintf(
+            '/2010-04-01/Accounts/%s/%s',
+            self::encodeSegment($this->transport->accountSid()),
+            $this->joinParts($parts),
+        );
+    }
+
+    /**
+     * Build a URL under `/v1/…`. The /v1 surface has no `.json` suffix.
+     */
+    protected function v1Path(string ...$parts): string
+    {
+        return '/v1/' . $this->joinParts($parts);
+    }
+
+    /**
+     * Build a URL under `/v2/…`. The /v2 surface has no `.json` suffix.
+     */
+    protected function v2Path(string ...$parts): string
+    {
+        return '/v2/' . $this->joinParts($parts);
+    }
+
+    /**
+     * @param array<int|string, string> $parts
+     */
+    private function joinParts(array $parts): string
+    {
+        $encoded = [];
+        foreach (array_values($parts) as $part) {
+            if ($part !== '') {
+                $encoded[] = self::encodeSegment($part);
+            }
+        }
+
+        return implode('/', $encoded);
     }
 }

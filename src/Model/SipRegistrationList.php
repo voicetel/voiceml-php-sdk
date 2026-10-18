@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace VoiceML\Model;
 
-final class StreamList extends Page
+/**
+ * `GET /SIP/Registrations` list envelope.
+ */
+final class SipRegistrationList extends Page
 {
     /**
-     * @param list<Stream> $streams
+     * @param list<SipRegistration> $registrations
      */
     public function __construct(
-        public readonly array $streams = [],
+        public readonly array $registrations = [],
         ?int $page = 0,
         ?int $pageSize = null,
-        ?int $numPages = null,
-        ?int $total = null,
         ?int $start = null,
         ?int $end = null,
         ?string $firstPageUri = null,
@@ -25,8 +26,6 @@ final class StreamList extends Page
         parent::__construct(
             $page,
             $pageSize,
-            $numPages,
-            $total,
             $start,
             $end,
             $firstPageUri,
@@ -41,22 +40,20 @@ final class StreamList extends Page
      */
     public static function fromArray(array $data): self
     {
-        /** @var list<Stream> $items */
+        /** @var list<SipRegistration> $items */
         $items = [];
-        if (isset($data['streams']) && is_array($data['streams'])) {
-            foreach ($data['streams'] as $row) {
+        if (isset($data['registrations']) && is_array($data['registrations'])) {
+            foreach ($data['registrations'] as $row) {
                 if (is_array($row)) {
-                    $items[] = Stream::fromArray($row);
+                    $items[] = SipRegistration::fromArray($row);
                 }
             }
         }
-        [$page, $pageSize, $numPages, $total, $start, $end, $firstPageUri, $nextPageUri, $previousPageUri, $uri] = self::pageFields($data);
+        [$page, $pageSize, $start, $end, $firstPageUri, $nextPageUri, $previousPageUri, $uri] = self::pageFields($data);
         return new self(
-            streams: $items,
+            registrations: $items,
             page: $page,
             pageSize: $pageSize,
-            numPages: $numPages,
-            total: $total,
             start: $start,
             end: $end,
             firstPageUri: $firstPageUri,

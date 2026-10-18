@@ -9,12 +9,17 @@ use VoiceML\Model\ListRecordingsParams;
 use VoiceML\Model\Recording;
 use VoiceML\Model\RecordingAudio;
 use VoiceML\Model\RecordingList;
+use VoiceML\Model\Transcription;
+use VoiceML\Model\TranscriptionList;
+use VoiceML\Model\ListTranscriptionsParams;
 
 /**
- * Account-scoped `/Recordings` operations.
+ * Account-scoped `/Recordings` operations, plus the transcriptions attached
+ * to a recording (`/Recordings/{sid}/Transcriptions`).
  *
- * Per-call recording start/stop/list lives on {@see CallsResource} — this resource handles
- * the account-wide list, single-recording fetch (both metadata and audio), and delete.
+ * Per-call recording start/stop/list lives on {@see CallsResource} — this
+ * resource handles the account-wide list, single-recording fetch (both
+ * metadata and audio), delete, and recording-scoped transcriptions.
  */
 final class RecordingsResource extends Resource
 {
@@ -23,6 +28,20 @@ final class RecordingsResource extends Resource
         $query = ($params ?? new ListRecordingsParams())->toQuery();
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request('GET', $this->path('Recordings'), $query);
+        return RecordingList::fromArray($raw);
+    }
+
+    /**
+     * Fetch the page a previous result's `next_page_uri` points at, following
+     * the link verbatim. Returns null on the last page.
+     */
+    public function nextPage(RecordingList $page): ?RecordingList
+    {
+        if ($page->nextPageUri === null || $page->nextPageUri === '') {
+            return null;
+        }
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->requestPageUri($page->nextPageUri);
         return RecordingList::fromArray($raw);
     }
 
@@ -37,8 +56,9 @@ final class RecordingsResource extends Resource
     /**
      * Fetch the WAV audio for a recording.
      *
-     * Three server delivery shapes are flattened into one result by following any 302
-     * redirect to S3:
+     * Three server delivery shapes are flattened into one result by following
+     * the 302 redirect to S3 manually (Authorization is dropped as soon as the
+     * host changes; an https→http downgrade is refused):
      *   * `200 OK` — local file present.
      *   * `302 Found` — archived to S3; the SDK follows the presigned URL.
      *   * `410 Gone` — local file gone AND no S3 key. Raises {@see \VoiceML\Exception\GoneException}.
@@ -76,39 +96,62 @@ final class RecordingsResource extends Resource
         $this->transport->request('DELETE', $this->path('Recordings', $recordingSid));
     }
 
+    // --- Recording-scoped transcriptions ---
+
+    public function listTranscriptions(
+        string $recordingSid,
+        ?ListTranscriptionsParams $params = null,
+    ): TranscriptionList {
+        $query = ($params ?? new ListTranscriptionsParams())->toQuery();
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->request(
+            'GET',
+            $this->path('Recordings', $recordingSid, 'Transcriptions'),
+            $query,
+        );
+        return TranscriptionList::fromArray($raw);
+    }
+
+    public function getTranscription(string $recordingSid, string $sid): Transcription
+    {
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->request(
+            'GET',
+            $this->path('Recordings', $recordingSid, 'Transcriptions', $sid),
+        );
+        return Transcription::fromArray($raw);
+    }
+
+    public function deleteTranscription(string $recordingSid, string $sid): void
+    {
+        $this->transport->request(
+            'DELETE',
+            $this->path('Recordings', $recordingSid, 'Transcriptions', $sid),
+        );
+    }
+
     /**
-     * Generator that lazily walks all pages of `/Recordings`, yielding one Recording at a time.
+     * Generator that lazily walks all pages of `/Recordings`, yielding one
+     * Recording at a time. Follows `next_page_uri` verbatim; stopping the
+     * generator early makes no further requests.
      *
      * @return \Generator<int, Recording>
      */
-    public function iterate(
-        ?string $dateCreated = null,
-        ?string $dateCreatedLt = null,
-        ?string $dateCreatedGt = null,
-        ?string $callSid = null,
-        ?string $conferenceSid = null,
-        ?bool $includeSoftDeleted = null,
-        ?int $pageSize = null,
-    ): \Generator {
-        $page = 0;
+    public function iterate(?ListRecordingsParams $params = null): \Generator
+    {
+        $page = $this->list($params);
         while (true) {
-            $chunk = $this->list(new ListRecordingsParams(
-                dateCreated: $dateCreated,
-                dateCreatedLt: $dateCreatedLt,
-                dateCreatedGt: $dateCreatedGt,
-                callSid: $callSid,
-                conferenceSid: $conferenceSid,
-                includeSoftDeleted: $includeSoftDeleted,
-                page: $page,
-                pageSize: $pageSize,
-            ));
-            foreach ($chunk->recordings as $recording) {
+            foreach ($page->recordings as $recording) {
                 yield $recording;
             }
-            if (($chunk->nextPageUri ?? null) === null || $chunk->recordings === []) {
+            if ($page->nextPageUri === null || $page->nextPageUri === '' || $page->recordings === []) {
                 return;
             }
-            $page++;
+            $next = $this->nextPage($page);
+            if ($next === null) {
+                return;
+            }
+            $page = $next;
         }
     }
 }

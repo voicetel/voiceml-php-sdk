@@ -24,8 +24,8 @@ abstract class FormRequest
 
     /**
      * Render the request as a form-encodable array. Null fields are omitted; booleans become
-     * `"true"` / `"false"`; arrays are emitted as-is so Guzzle encodes them as repeated form
-     * params (e.g. `StatusCallbackEvent=ringing&StatusCallbackEvent=completed`).
+     * `"true"` / `"false"`; list values are kept as PHP arrays — the transport encodes them
+     * as repeated form params (`Key=ringing&Key=completed`), never `Key[0]=…`.
      *
      * @return array<string,mixed>
      */
@@ -36,7 +36,6 @@ abstract class FormRequest
             if (!property_exists($this, $propName)) {
                 continue;
             }
-            /** @psalm-suppress MixedAssignment */
             $value = $this->{$propName};
             if ($value === null) {
                 continue;

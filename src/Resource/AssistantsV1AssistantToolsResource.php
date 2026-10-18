@@ -11,29 +11,30 @@ use VoiceML\Transport;
  * `/v1/Assistants/{id}/Tools` — assistant-scoped tools. Bound to a parent
  * AssistantId. Produced via {@see AssistantsV1Resource::assistants()}.
  */
-final class AssistantsV1AssistantToolsResource
+final class AssistantsV1AssistantToolsResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $assistantId,
     ) {
+        parent::__construct($transport);
     }
 
     /** @param array<string,mixed> $query */
     public function list(array $query = []): AssistantsV1ToolList
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Assistants/{$this->assistantId}/Tools", $query);
+        $raw = $this->transport->request('GET', $this->v1Path('Assistants', $this->assistantId, 'Tools'), $query);
         return AssistantsV1ToolList::fromArray($raw);
     }
 
     public function attach(string $toolId): void
     {
-        $this->transport->request('POST', "/v1/Assistants/{$this->assistantId}/Tools/{$toolId}");
+        $this->transport->request('POST', $this->v1Path('Assistants', $this->assistantId, 'Tools', $toolId));
     }
 
     public function detach(string $toolId): void
     {
-        $this->transport->request('DELETE', "/v1/Assistants/{$this->assistantId}/Tools/{$toolId}");
+        $this->transport->request('DELETE', $this->v1Path('Assistants', $this->assistantId, 'Tools', $toolId));
     }
 }

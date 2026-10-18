@@ -9,18 +9,19 @@ use VoiceML\Model\UpdateConversationsV1ServiceNotificationRequest;
 use VoiceML\Transport;
 
 /** `/v1/Services/{ChatServiceSid}/Configuration/Notifications` — per-service push notification config singleton. */
-final class ConversationsV1ServiceNotificationResource
+final class ConversationsV1ServiceNotificationResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $chatServiceSid,
     ) {
+        parent::__construct($transport);
     }
 
     public function fetch(): ConversationsV1ServiceNotification
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Services/{$this->chatServiceSid}/Configuration/Notifications");
+        $raw = $this->transport->request('GET', $this->v1Path('Services', $this->chatServiceSid, 'Configuration', 'Notifications'));
         return ConversationsV1ServiceNotification::fromArray($raw);
     }
 
@@ -29,7 +30,7 @@ final class ConversationsV1ServiceNotificationResource
     {
         $form = $body instanceof UpdateConversationsV1ServiceNotificationRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/Services/{$this->chatServiceSid}/Configuration/Notifications", null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Services', $this->chatServiceSid, 'Configuration', 'Notifications'), null, $form);
         return ConversationsV1ServiceNotification::fromArray($raw);
     }
 }

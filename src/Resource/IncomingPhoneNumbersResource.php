@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace VoiceML\Resource;
 
 use VoiceML\Model\CreateIncomingPhoneNumberRequest;
+use VoiceML\Model\CreateTypedIncomingPhoneNumberRequest;
 use VoiceML\Model\IncomingPhoneNumber;
 use VoiceML\Model\IncomingPhoneNumberList;
-use VoiceML\Model\ListTypedIncomingPhoneNumbersParams;
+use VoiceML\Model\ListIncomingPhoneNumbersParams;
 use VoiceML\Model\UpdateIncomingPhoneNumberRequest;
 
 /**
@@ -24,23 +25,25 @@ use VoiceML\Model\UpdateIncomingPhoneNumberRequest;
  */
 final class IncomingPhoneNumbersResource extends Resource
 {
-    public function list(
-        ?string $phoneNumber = null,
-        ?int $page = null,
-        ?int $pageSize = null,
-        ?string $pageToken = null,
-    ): IncomingPhoneNumberList {
+    public function list(?ListIncomingPhoneNumbersParams $params = null): IncomingPhoneNumberList
+    {
+        $query = ($params ?? new ListIncomingPhoneNumbersParams())->toQuery();
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request(
-            'GET',
-            $this->path('IncomingPhoneNumbers'),
-            [
-                'PhoneNumber' => $phoneNumber,
-                'Page' => $page,
-                'PageSize' => $pageSize,
-                'PageToken' => $pageToken,
-            ],
-        );
+        $raw = $this->transport->request('GET', $this->path('IncomingPhoneNumbers'), $query);
+        return IncomingPhoneNumberList::fromArray($raw);
+    }
+
+    /**
+     * Fetch the page a previous result's `next_page_uri` points at, following
+     * the link verbatim. Returns null on the last page.
+     */
+    public function nextPage(IncomingPhoneNumberList $page): ?IncomingPhoneNumberList
+    {
+        if ($page->nextPageUri === null || $page->nextPageUri === '') {
+            return null;
+        }
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->requestPageUri($page->nextPageUri);
         return IncomingPhoneNumberList::fromArray($raw);
     }
 
@@ -80,45 +83,45 @@ final class IncomingPhoneNumbersResource extends Resource
         $this->transport->request('DELETE', $this->path('IncomingPhoneNumbers', $sid));
     }
 
-    public function listLocal(?ListTypedIncomingPhoneNumbersParams $params = null): IncomingPhoneNumberList
+    public function listLocal(?ListIncomingPhoneNumbersParams $params = null): IncomingPhoneNumberList
     {
         return $this->listTyped('Local', $params);
     }
 
-    public function createLocal(CreateIncomingPhoneNumberRequest $body): IncomingPhoneNumber
+    public function createLocal(CreateTypedIncomingPhoneNumberRequest $body): IncomingPhoneNumber
     {
         return $this->createTyped('Local', $body);
     }
 
-    public function listMobile(?ListTypedIncomingPhoneNumbersParams $params = null): IncomingPhoneNumberList
+    public function listMobile(?ListIncomingPhoneNumbersParams $params = null): IncomingPhoneNumberList
     {
         return $this->listTyped('Mobile', $params);
     }
 
-    public function createMobile(CreateIncomingPhoneNumberRequest $body): IncomingPhoneNumber
+    public function createMobile(CreateTypedIncomingPhoneNumberRequest $body): IncomingPhoneNumber
     {
         return $this->createTyped('Mobile', $body);
     }
 
-    public function listTollFree(?ListTypedIncomingPhoneNumbersParams $params = null): IncomingPhoneNumberList
+    public function listTollFree(?ListIncomingPhoneNumbersParams $params = null): IncomingPhoneNumberList
     {
         return $this->listTyped('TollFree', $params);
     }
 
-    public function createTollFree(CreateIncomingPhoneNumberRequest $body): IncomingPhoneNumber
+    public function createTollFree(CreateTypedIncomingPhoneNumberRequest $body): IncomingPhoneNumber
     {
         return $this->createTyped('TollFree', $body);
     }
 
-    private function listTyped(string $kind, ?ListTypedIncomingPhoneNumbersParams $params): IncomingPhoneNumberList
+    private function listTyped(string $kind, ?ListIncomingPhoneNumbersParams $params): IncomingPhoneNumberList
     {
-        $query = ($params ?? new ListTypedIncomingPhoneNumbersParams())->toQuery();
+        $query = ($params ?? new ListIncomingPhoneNumbersParams())->toQuery();
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request('GET', $this->path('IncomingPhoneNumbers', $kind), $query);
         return IncomingPhoneNumberList::fromArray($raw);
     }
 
-    private function createTyped(string $kind, CreateIncomingPhoneNumberRequest $body): IncomingPhoneNumber
+    private function createTyped(string $kind, CreateTypedIncomingPhoneNumberRequest $body): IncomingPhoneNumber
     {
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request(
@@ -131,29 +134,27 @@ final class IncomingPhoneNumbersResource extends Resource
     }
 
     /**
-     * Generator that lazily walks all pages of `/IncomingPhoneNumbers`, yielding one
-     * IncomingPhoneNumber at a time.
+     * Generator that lazily walks all pages of `/IncomingPhoneNumbers`, yielding
+     * one IncomingPhoneNumber at a time. Follows `next_page_uri` verbatim;
+     * stopping the generator early makes no further requests.
      *
      * @return \Generator<int, IncomingPhoneNumber>
      */
-    public function iterate(
-        ?string $phoneNumber = null,
-        ?int $pageSize = null,
-    ): \Generator {
-        $page = 0;
+    public function iterate(?ListIncomingPhoneNumbersParams $params = null): \Generator
+    {
+        $page = $this->list($params);
         while (true) {
-            $chunk = $this->list(
-                phoneNumber: $phoneNumber,
-                page: $page,
-                pageSize: $pageSize,
-            );
-            foreach ($chunk->incomingPhoneNumbers as $number) {
+            foreach ($page->incomingPhoneNumbers as $number) {
                 yield $number;
             }
-            if (($chunk->nextPageUri ?? null) === null || $chunk->incomingPhoneNumbers === []) {
+            if ($page->nextPageUri === null || $page->nextPageUri === '' || $page->incomingPhoneNumbers === []) {
                 return;
             }
-            $page++;
+            $next = $this->nextPage($page);
+            if ($next === null) {
+                return;
+            }
+            $page = $next;
         }
     }
 }

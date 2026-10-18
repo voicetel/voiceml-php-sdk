@@ -17,14 +17,15 @@ use VoiceML\Transport;
  * The product-specific body model is supplied as a factory so this one class
  * serves Voice / Messaging / PhoneNumbers / Trunking across both API versions.
  */
-final class PricingCountriesResource
+final class PricingCountriesResource extends Resource
 {
     /** @param Closure(array<string,mixed>):Model $factory */
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $basePath,
         private readonly Closure $factory,
     ) {
+        parent::__construct($transport);
     }
 
     /**
@@ -40,7 +41,7 @@ final class PricingCountriesResource
     public function fetch(string $isoCountry): Model
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->basePath . '/' . rawurlencode($isoCountry));
+        $raw = $this->transport->request('GET', $this->basePath . '/' . self::encodeSegment($isoCountry));
         return ($this->factory)($raw);
     }
 }

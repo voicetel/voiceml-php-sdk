@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace VoiceML\Model;
 
+/**
+ * `GET /Transcriptions` / `GET /Recordings/{sid}/Transcriptions` list envelope.
+ */
 final class TranscriptionList extends Page
 {
     /**
-     * @param list<CallTranscription> $transcriptions
+     * @param list<Transcription> $transcriptions
      */
     public function __construct(
         public readonly array $transcriptions = [],
         ?int $page = 0,
         ?int $pageSize = null,
-        ?int $numPages = null,
-        ?int $total = null,
         ?int $start = null,
         ?int $end = null,
         ?string $firstPageUri = null,
@@ -25,8 +26,6 @@ final class TranscriptionList extends Page
         parent::__construct(
             $page,
             $pageSize,
-            $numPages,
-            $total,
             $start,
             $end,
             $firstPageUri,
@@ -41,22 +40,20 @@ final class TranscriptionList extends Page
      */
     public static function fromArray(array $data): self
     {
-        /** @var list<CallTranscription> $items */
+        /** @var list<Transcription> $items */
         $items = [];
         if (isset($data['transcriptions']) && is_array($data['transcriptions'])) {
             foreach ($data['transcriptions'] as $row) {
                 if (is_array($row)) {
-                    $items[] = CallTranscription::fromArray($row);
+                    $items[] = Transcription::fromArray($row);
                 }
             }
         }
-        [$page, $pageSize, $numPages, $total, $start, $end, $firstPageUri, $nextPageUri, $previousPageUri, $uri] = self::pageFields($data);
+        [$page, $pageSize, $start, $end, $firstPageUri, $nextPageUri, $previousPageUri, $uri] = self::pageFields($data);
         return new self(
             transcriptions: $items,
             page: $page,
             pageSize: $pageSize,
-            numPages: $numPages,
-            total: $total,
             start: $start,
             end: $end,
             firstPageUri: $firstPageUri,

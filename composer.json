@@ -1,10 +1,9 @@
 {
     "name": "voicetel/voiceml",
-    "version": "0.9.2",
     "description": "Official PHP SDK for the VoiceML REST API (Twilio-compatible voice + AMD service from VoiceTel)",
     "type": "library",
-    "license": "MIT",
-    "homepage": "https://voiceml.voicetel.com",
+    "license": "proprietary",
+    "homepage": "https://voicetel.com/docs/api/v0.9/voiceml/",
     "authors": [
         {
             "name": "VoiceTel",
@@ -17,7 +16,8 @@
         "ext-json": "*"
     },
     "require-dev": {
-        "phpunit/phpunit": "^10.5"
+        "phpunit/phpunit": "^10.5 || ^11.0",
+        "phpstan/phpstan": "^2.0"
     },
     "autoload": {
         "psr-4": {
@@ -29,5 +29,9 @@
             "VoiceML\\Tests\\": "tests/"
         }
     },
-    "minimum-stability": "stable"
+    "minimum-stability": "stable",
+    "scripts": {
+        "test": "phpunit",
+        "phpstan": "phpstan analyse"
+    }
 }

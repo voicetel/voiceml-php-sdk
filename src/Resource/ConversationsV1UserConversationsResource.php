@@ -13,26 +13,27 @@ use VoiceML\Transport;
  * `/v1/Users/{Sid}/Conversations`. Bound to a parent User; produced via
  * {@see ConversationsV1UsersResource::conversations()}.
  */
-final class ConversationsV1UserConversationsResource
+final class ConversationsV1UserConversationsResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $userSid,
     ) {
+        parent::__construct($transport);
     }
 
     /** @param array<string,mixed> $query */
     public function list(array $query = []): ConversationsV1UserConversationList
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Users/{$this->userSid}/Conversations", $query);
+        $raw = $this->transport->request('GET', $this->v1Path('Users', $this->userSid, 'Conversations'), $query);
         return ConversationsV1UserConversationList::fromArray($raw);
     }
 
     public function fetch(string $conversationSid): ConversationsV1UserConversation
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Users/{$this->userSid}/Conversations/{$conversationSid}");
+        $raw = $this->transport->request('GET', $this->v1Path('Users', $this->userSid, 'Conversations', $conversationSid));
         return ConversationsV1UserConversation::fromArray($raw);
     }
 
@@ -41,12 +42,12 @@ final class ConversationsV1UserConversationsResource
     {
         $form = $body instanceof UpdateConversationsV1UserConversationRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/Users/{$this->userSid}/Conversations/{$conversationSid}", null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Users', $this->userSid, 'Conversations', $conversationSid), null, $form);
         return ConversationsV1UserConversation::fromArray($raw);
     }
 
     public function delete(string $conversationSid): void
     {
-        $this->transport->request('DELETE', "/v1/Users/{$this->userSid}/Conversations/{$conversationSid}");
+        $this->transport->request('DELETE', $this->v1Path('Users', $this->userSid, 'Conversations', $conversationSid));
     }
 }

@@ -4,46 +4,41 @@ declare(strict_types=1);
 
 namespace VoiceML\Resource;
 
-use GuzzleHttp\Client as GuzzleClient;
-use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\RequestOptions;
-use VoiceML\Exception\ApiException;
 use VoiceML\Model\HealthStatus;
 use VoiceML\Transport;
 
 /**
  * Diagnostic surfaces — `/health` and the OpenAPI doc endpoints.
  *
- * These don't sit under `/2010-04-01/Accounts/{AccountSid}/…`; they're mounted at the server
- * root and don't require auth (the spec marks them `security: []`). For that reason this
- * resource issues its own un-authed Guzzle calls rather than going through the main
- * {@see Transport}.
+ * These don't sit under `/2010-04-01/Accounts/{AccountSid}/…`; they're
+ * mounted at the server root and marked `security: []` in the spec, so this
+ * resource issues un-authenticated requests through the normal
+ * {@see Transport} — the caller's HTTP client, timeout, proxy and User-Agent
+ * all apply, a 503 health failure raises
+ * {@see \VoiceML\Exception\ServerException}, and no credentials are needed.
  */
-final class DiagnosticsResource
+final class DiagnosticsResource extends Resource
 {
-    private readonly Transport $transport;
-    private readonly ClientInterface $http;
-
-    public function __construct(Transport $transport, ?ClientInterface $httpClient = null)
-    {
-        $this->transport = $transport;
-        $this->http = $httpClient ?? new GuzzleClient([
-            'base_uri' => $transport->baseUrl() . '/',
-            'timeout' => 10.0,
-            'http_errors' => false,
-            'allow_redirects' => false,
-        ]);
+    /**
+     * Standalone, credential-free entry point: `$diag = DiagnosticsResource::forBaseUrl(...)`.
+     */
+    public static function forBaseUrl(
+        ?string $baseUrl = null,
+        ?\GuzzleHttp\ClientInterface $httpClient = null,
+        ?float $timeout = null,
+    ): self {
+        return new self(Transport::forDiagnostics($baseUrl, $httpClient, $timeout));
     }
 
     /**
-     * Hit `/health`. 200 = all hard checks pass; 503 raises {@see \VoiceML\Exception\ServerException}
-     * with the failure list on `body`.
+     * Hit `/health`. 200 = all hard checks pass; 503 raises
+     * {@see \VoiceML\Exception\ServerException} with the failure list on `body`.
+     * `warnings` / `failures` are optional — a bare `{"ok":true}` decodes fine.
      */
     public function health(): HealthStatus
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->unauthRequest('GET', '/health');
+        $raw = $this->transport->requestUnauthenticated('GET', '/health');
         return HealthStatus::fromArray($raw);
     }
 
@@ -55,46 +50,27 @@ final class DiagnosticsResource
     public function openapiJson(): array
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->unauthRequest('GET', '/openapi.json');
+        $raw = $this->transport->requestUnauthenticated('GET', '/openapi.json');
         return $raw;
     }
 
-    private function unauthRequest(string $method, string $path): mixed
+    /**
+     * Fetch the OpenAPI spec as raw YAML text (`/openapi.yaml`).
+     */
+    public function openapiYaml(): string
     {
-        try {
-            $response = $this->http->request($method, $this->transport->baseUrl() . $path, [
-                RequestOptions::HEADERS => ['Accept' => 'application/json'],
-                RequestOptions::HTTP_ERRORS => false,
-            ]);
-        } catch (GuzzleException $e) {
-            throw new ApiException(
-                'transport error fetching diagnostic resource: ' . $e->getMessage(),
-                statusCode: 0,
-                previous: $e,
-            );
-        }
+        $result = $this->transport->fetchBytes('/openapi.yaml', 'text/yaml, */*', authenticated: false);
 
-        $status = $response->getStatusCode();
-        $bodyText = (string) $response->getBody();
-        if ($status < 200 || $status >= 300) {
-            throw new ApiException(
-                sprintf('HTTP %d on %s', $status, $path),
-                statusCode: $status,
-                body: $bodyText,
-            );
-        }
-        if ($bodyText === '') {
-            return null;
-        }
-        try {
-            return json_decode($bodyText, true, 512, JSON_THROW_ON_ERROR);
-        } catch (\JsonException $e) {
-            throw new ApiException(
-                'non-JSON success response: ' . substr($bodyText, 0, 200),
-                statusCode: $status,
-                body: $bodyText,
-                previous: $e,
-            );
-        }
+        return $result['body'];
+    }
+
+    /**
+     * Fetch the OpenAPI spec as raw YAML text (`/openapi.yml`).
+     */
+    public function openapiYml(): string
+    {
+        $result = $this->transport->fetchBytes('/openapi.yml', 'text/yaml, */*', authenticated: false);
+
+        return $result['body'];
     }
 }

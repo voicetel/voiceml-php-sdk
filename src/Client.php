@@ -6,28 +6,36 @@ namespace VoiceML;
 
 use GuzzleHttp\ClientInterface;
 use VoiceML\Exception\ConfigurationException;
+use VoiceML\Resource\AccountsResource;
 use VoiceML\Resource\ApplicationsResource;
 use VoiceML\Resource\AssistantsV1Resource;
 use VoiceML\Resource\CallsResource;
 use VoiceML\Resource\ConferencesResource;
 use VoiceML\Resource\ConversationsV1Resource;
 use VoiceML\Resource\DiagnosticsResource;
+use VoiceML\Resource\ExportsResource;
 use VoiceML\Resource\IncomingPhoneNumbersResource;
 use VoiceML\Resource\MessagesResource;
 use VoiceML\Resource\MessagingV1Resource;
 use VoiceML\Resource\NotificationsResource;
+use VoiceML\Resource\OutgoingCallerIdsResource;
 use VoiceML\Resource\PricingResource;
 use VoiceML\Resource\QueuesResource;
 use VoiceML\Resource\RecordingsResource;
 use VoiceML\Resource\RoutesV2Resource;
 use VoiceML\Resource\SipResource;
+use VoiceML\Resource\TranscriptionsResource;
+use VoiceML\Resource\UsageRecordsResource;
 use VoiceML\Resource\VoiceV1Resource;
+use VoiceML\Resource\MonitorAlertsResource;
 
 /**
  * VoiceML client. Construct once per `{accountSid, apiKey}` pair and reuse.
  *
  * VoiceML uses HTTP Basic auth: the `accountSid` (Twilio-format `AC` + 32 hex) is the username
- * and `apiKey` is the password. Drop-in compatible with the Twilio PHP SDK constructor.
+ * and `apiKey` is the password — the same HTTP Basic positions the Twilio PHP SDK uses, so
+ * porting is a credential swap (VoiceML-issued AccountSid + API key; Twilio-issued
+ * credentials do not work here).
  *
  * ```php
  * use VoiceML\Client;
@@ -35,8 +43,8 @@ use VoiceML\Resource\VoiceV1Resource;
  *
  * $client = new Client(accountSid: 'AC…', apiKey: '…');
  * $call = $client->calls->create(new CreateCallRequest(
- *     to: '+18005551234',
- *     from: '+18005550000',
+ *     to: '+14155550100',
+ *     from: '+14155550101',
  *     url: 'https://example.com/twiml',
  * ));
  * ```
@@ -63,18 +71,26 @@ final class Client
     public readonly PricingResource $pricing;
     public readonly AssistantsV1Resource $assistantsV1;
     public readonly DiagnosticsResource $diagnostics;
+    public readonly AccountsResource $accounts;
+    public readonly OutgoingCallerIdsResource $outgoingCallerIds;
+    public readonly TranscriptionsResource $transcriptions;
+    public readonly ExportsResource $exports;
+    public readonly UsageRecordsResource $usageRecords;
+    public readonly MonitorAlertsResource $monitorAlerts;
 
     private readonly Transport $transport;
     private readonly ClientOptions $options;
 
     public function __construct(
         string $accountSid,
+        #[\SensitiveParameter]
         ?string $apiKey = null,
         ?string $baseUrl = null,
         ?float $timeout = null,
         ?int $maxRetries = null,
         ?string $userAgent = null,
         ?ClientInterface $httpClient = null,
+        #[\SensitiveParameter]
         ?string $authToken = null,
         ?string $messagingBaseUrl = null,
         ?string $conversationsBaseUrl = null,
@@ -124,6 +140,12 @@ final class Client
         $this->pricing = new PricingResource($this->transport);
         $this->assistantsV1 = new AssistantsV1Resource($this->transport);
         $this->diagnostics = new DiagnosticsResource($this->transport);
+        $this->accounts = new AccountsResource($this->transport);
+        $this->outgoingCallerIds = new OutgoingCallerIdsResource($this->transport);
+        $this->transcriptions = new TranscriptionsResource($this->transport);
+        $this->exports = new ExportsResource($this->transport);
+        $this->usageRecords = new UsageRecordsResource($this->transport);
+        $this->monitorAlerts = new MonitorAlertsResource($this->transport);
     }
 
     /**
@@ -158,5 +180,17 @@ final class Client
     public function transport(): Transport
     {
         return $this->transport;
+    }
+
+    /** @return array<string,mixed> */
+    public function __debugInfo(): array
+    {
+        return ['accountSid' => $this->accountSid(), 'baseUrl' => $this->baseUrl(), 'apiKey' => '***'];
+    }
+
+    /** @return array<string,mixed> */
+    public function __serialize(): array
+    {
+        return $this->__debugInfo();
     }
 }

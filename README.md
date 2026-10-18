@@ -85,8 +85,8 @@ $client = new Client(
 );
 
 $call = $client->calls->create(new CreateCallRequest(
-    to: '+18005551234',
-    from: '+18005550000',
+    to: '+14155550100',
+    from: '+14155550101',
     url: 'https://example.com/twiml',
     machineDetection: 'DetectMessageEnd',
 ));
@@ -173,8 +173,8 @@ use VoiceML\Model\StartPaymentRequest;
 $client = new Client(accountSid: 'AC…', apiKey: '…');
 
 $call = $client->calls->create(new CreateCallRequest(
-    to: '+18005551234',
-    from: '+18005550000',
+    to: '+14155550100',
+    from: '+14155550101',
     url: 'https://example.com/twiml',
 ));
 
@@ -245,7 +245,7 @@ foreach ($client->calls->iterate(status: 'completed', pageSize: 200) as $call) {
     process($call);
 }
 
-foreach ($client->messages->iterate(from: '+18005550000', pageSize: 200) as $msg) {
+foreach ($client->messages->iterate(from: '+14155550101', pageSize: 200) as $msg) {
     archive($msg);
 }
 ```
@@ -262,7 +262,7 @@ The `accountSid` + API token pair Twilio's SDK validates in its constructor work
 // Before — Twilio
 // use Twilio\Rest\Client as TwilioClient;
 // $client = new TwilioClient('AC…', '<token>');
-// $call = $client->calls->create('+18005551234', '+18005550000', ['url' => '...']);
+// $call = $client->calls->create('+14155550100', '+14155550101', ['url' => '...']);
 
 // After — VoiceML (Twilio-compatible)
 use VoiceML\Client;
@@ -270,8 +270,8 @@ use VoiceML\Model\CreateCallRequest;
 
 $client = new Client(accountSid: 'AC…', apiKey: '<api-key>');
 $call = $client->calls->create(new CreateCallRequest(
-    to: '+18005551234',
-    from: '+18005550000',
+    to: '+14155550100',
+    from: '+14155550101',
     url: 'https://example.com/twiml',
 ));
 ```

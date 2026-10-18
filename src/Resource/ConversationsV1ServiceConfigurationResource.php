@@ -13,15 +13,16 @@ use VoiceML\Transport;
  * configuration singleton. Exposes nested `notifications` and `webhooks`
  * sub-resources for per-service push and webhook config.
  */
-final class ConversationsV1ServiceConfigurationResource
+final class ConversationsV1ServiceConfigurationResource extends Resource
 {
     public readonly ConversationsV1ServiceNotificationResource $notifications;
     public readonly ConversationsV1ServiceWebhookConfigurationResource $webhooks;
 
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $chatServiceSid,
     ) {
+        parent::__construct($transport);
         $this->notifications = new ConversationsV1ServiceNotificationResource($transport, $chatServiceSid);
         $this->webhooks = new ConversationsV1ServiceWebhookConfigurationResource($transport, $chatServiceSid);
     }
@@ -29,7 +30,7 @@ final class ConversationsV1ServiceConfigurationResource
     public function fetch(): ConversationsV1ServiceConfiguration
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Services/{$this->chatServiceSid}/Configuration");
+        $raw = $this->transport->request('GET', $this->v1Path('Services', $this->chatServiceSid, 'Configuration'));
         return ConversationsV1ServiceConfiguration::fromArray($raw);
     }
 
@@ -38,7 +39,7 @@ final class ConversationsV1ServiceConfigurationResource
     {
         $form = $body instanceof UpdateConversationsV1ServiceConfigurationRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/Services/{$this->chatServiceSid}/Configuration", null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Services', $this->chatServiceSid, 'Configuration'), null, $form);
         return ConversationsV1ServiceConfiguration::fromArray($raw);
     }
 }

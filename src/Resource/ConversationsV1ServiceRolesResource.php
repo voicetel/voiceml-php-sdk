@@ -11,12 +11,13 @@ use VoiceML\Model\UpdateConversationsV1ServiceRoleRequest;
 use VoiceML\Transport;
 
 /** `/v1/Services/{ChatServiceSid}/Roles`. */
-final class ConversationsV1ServiceRolesResource
+final class ConversationsV1ServiceRolesResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $chatServiceSid,
     ) {
+        parent::__construct($transport);
     }
 
     /** @param array<string,mixed>|CreateConversationsV1ServiceRoleRequest $body */
@@ -24,7 +25,7 @@ final class ConversationsV1ServiceRolesResource
     {
         $form = $body instanceof CreateConversationsV1ServiceRoleRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/Services/{$this->chatServiceSid}/Roles", null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Services', $this->chatServiceSid, 'Roles'), null, $form);
         return ConversationsV1ServiceRole::fromArray($raw);
     }
 
@@ -32,14 +33,14 @@ final class ConversationsV1ServiceRolesResource
     public function list(array $query = []): ConversationsV1ServiceRoleList
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Services/{$this->chatServiceSid}/Roles", $query);
+        $raw = $this->transport->request('GET', $this->v1Path('Services', $this->chatServiceSid, 'Roles'), $query);
         return ConversationsV1ServiceRoleList::fromArray($raw);
     }
 
     public function fetch(string $sid): ConversationsV1ServiceRole
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Services/{$this->chatServiceSid}/Roles/{$sid}");
+        $raw = $this->transport->request('GET', $this->v1Path('Services', $this->chatServiceSid, 'Roles', $sid));
         return ConversationsV1ServiceRole::fromArray($raw);
     }
 
@@ -48,12 +49,12 @@ final class ConversationsV1ServiceRolesResource
     {
         $form = $body instanceof UpdateConversationsV1ServiceRoleRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/Services/{$this->chatServiceSid}/Roles/{$sid}", null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Services', $this->chatServiceSid, 'Roles', $sid), null, $form);
         return ConversationsV1ServiceRole::fromArray($raw);
     }
 
     public function delete(string $sid): void
     {
-        $this->transport->request('DELETE', "/v1/Services/{$this->chatServiceSid}/Roles/{$sid}");
+        $this->transport->request('DELETE', $this->v1Path('Services', $this->chatServiceSid, 'Roles', $sid));
     }
 }

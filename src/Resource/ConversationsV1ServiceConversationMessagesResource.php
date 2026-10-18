@@ -14,13 +14,14 @@ use VoiceML\Transport;
  * `/v1/Services/{ChatServiceSid}/Conversations/{ConversationSid}/Messages`.
  * Produced via {@see ConversationsV1ServiceConversationsResource::messages()}.
  */
-final class ConversationsV1ServiceConversationMessagesResource
+final class ConversationsV1ServiceConversationMessagesResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $chatServiceSid,
         private readonly string $conversationSid,
     ) {
+        parent::__construct($transport);
     }
 
     /** @param array<string,mixed>|CreateConversationsV1ServiceConversationMessageRequest $body */
@@ -28,7 +29,7 @@ final class ConversationsV1ServiceConversationMessagesResource
     {
         $form = $body instanceof CreateConversationsV1ServiceConversationMessageRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/Services/{$this->chatServiceSid}/Conversations/{$this->conversationSid}/Messages", null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Services', $this->chatServiceSid, 'Conversations', $this->conversationSid, 'Messages'), null, $form);
         return ConversationsV1ServiceConversationMessage::fromArray($raw);
     }
 
@@ -36,14 +37,14 @@ final class ConversationsV1ServiceConversationMessagesResource
     public function list(array $query = []): ConversationsV1ServiceConversationMessageList
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Services/{$this->chatServiceSid}/Conversations/{$this->conversationSid}/Messages", $query);
+        $raw = $this->transport->request('GET', $this->v1Path('Services', $this->chatServiceSid, 'Conversations', $this->conversationSid, 'Messages'), $query);
         return ConversationsV1ServiceConversationMessageList::fromArray($raw);
     }
 
     public function fetch(string $sid): ConversationsV1ServiceConversationMessage
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Services/{$this->chatServiceSid}/Conversations/{$this->conversationSid}/Messages/{$sid}");
+        $raw = $this->transport->request('GET', $this->v1Path('Services', $this->chatServiceSid, 'Conversations', $this->conversationSid, 'Messages', $sid));
         return ConversationsV1ServiceConversationMessage::fromArray($raw);
     }
 
@@ -52,13 +53,13 @@ final class ConversationsV1ServiceConversationMessagesResource
     {
         $form = $body instanceof UpdateConversationsV1ServiceConversationMessageRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/Services/{$this->chatServiceSid}/Conversations/{$this->conversationSid}/Messages/{$sid}", null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Services', $this->chatServiceSid, 'Conversations', $this->conversationSid, 'Messages', $sid), null, $form);
         return ConversationsV1ServiceConversationMessage::fromArray($raw);
     }
 
     public function delete(string $sid): void
     {
-        $this->transport->request('DELETE', "/v1/Services/{$this->chatServiceSid}/Conversations/{$this->conversationSid}/Messages/{$sid}");
+        $this->transport->request('DELETE', $this->v1Path('Services', $this->chatServiceSid, 'Conversations', $this->conversationSid, 'Messages', $sid));
     }
 
     /** Sub-collection: per-channel delivery receipts. */

@@ -6,19 +6,15 @@ namespace VoiceML\Resource;
 
 use VoiceML\Model\UpdateVoiceV1DialingPermissionsSettingsRequest;
 use VoiceML\Model\VoiceV1DialingPermissionsSettings;
-use VoiceML\Transport;
 
 /** `/v1/Settings` — account-wide dialing-permissions inheritance flag. */
-final class VoiceV1SettingsResource
+final class VoiceV1SettingsResource extends Resource
 {
-    public function __construct(private readonly Transport $transport)
-    {
-    }
 
     public function fetch(): VoiceV1DialingPermissionsSettings
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', '/v1/Settings');
+        $raw = $this->transport->request('GET', $this->v1Path('Settings'));
         return VoiceV1DialingPermissionsSettings::fromArray($raw);
     }
 
@@ -27,7 +23,7 @@ final class VoiceV1SettingsResource
     {
         $form = $body instanceof UpdateVoiceV1DialingPermissionsSettingsRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', '/v1/Settings', null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Settings'), null, $form);
         return VoiceV1DialingPermissionsSettings::fromArray($raw);
     }
 }

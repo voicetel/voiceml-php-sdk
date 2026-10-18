@@ -10,15 +10,14 @@ use VoiceML\Model\CallPayment;
 use VoiceML\Model\CallTranscription;
 use VoiceML\Model\CreateCallRequest;
 use VoiceML\Model\EventsList;
+use VoiceML\Model\ListCallRecordingsParams;
 use VoiceML\Model\ListCallsParams;
 use VoiceML\Model\ListNotificationsParams;
 use VoiceML\Model\ListPageParams;
-use VoiceML\Model\ListRecordingsParams;
 use VoiceML\Model\NotificationsList;
+use VoiceML\Model\Notification;
 use VoiceML\Model\Recording;
 use VoiceML\Model\RecordingList;
-use VoiceML\Model\SiprecList;
-use VoiceML\Model\SiprecSession;
 use VoiceML\Model\StartPaymentRequest;
 use VoiceML\Model\StartRecordingRequest;
 use VoiceML\Model\StartSiprecRequest;
@@ -28,58 +27,44 @@ use VoiceML\Model\StopSiprecRequest;
 use VoiceML\Model\StopStreamRequest;
 use VoiceML\Model\StopTranscriptionRequest;
 use VoiceML\Model\Stream;
-use VoiceML\Model\StreamList;
-use VoiceML\Model\TranscriptionList;
+use VoiceML\Model\SiprecSession;
 use VoiceML\Model\UpdateCallRequest;
 use VoiceML\Model\UpdatePaymentRequest;
 use VoiceML\Model\UpdateRecordingRequest;
 
 /**
- * `/Calls` and call-scoped sub-resources (Recordings, Streams, Siprec, Transcriptions,
- * Notifications, Events, UserDefinedMessages).
+ * `/Calls` and call-scoped sub-resources (Recordings, Streams, Siprec,
+ * Transcriptions, Notifications, Events, UserDefinedMessages).
+ *
+ * Streams, Siprec and Transcriptions are write-only over REST: the server
+ * answers 405 / error 20004 for the historical list/fetch GETs, so only the
+ * start/stop methods are exposed.
  */
 final class CallsResource extends Resource
 {
-    public function list(
-        ?string $to = null,
-        ?string $from = null,
-        ?string $status = null,
-        ?string $parentCallSid = null,
-        ?string $startTime = null,
-        ?string $startTimeLt = null,
-        ?string $startTimeGt = null,
-        ?string $startTimeGte = null,
-        ?string $startTimeLte = null,
-        ?string $endTime = null,
-        ?string $endTimeLt = null,
-        ?string $endTimeGt = null,
-        ?int $page = null,
-        ?int $pageSize = null,
-        ?string $pageToken = null,
-    ): CallList {
-        $params = new ListCallsParams(
-            to: $to,
-            from: $from,
-            status: $status,
-            parentCallSid: $parentCallSid,
-            startTime: $startTime,
-            startTimeLt: $startTimeLt,
-            startTimeGt: $startTimeGt,
-            startTimeGte: $startTimeGte,
-            startTimeLte: $startTimeLte,
-            endTime: $endTime,
-            endTimeLt: $endTimeLt,
-            endTimeGt: $endTimeGt,
-            page: $page,
-            pageSize: $pageSize,
-            pageToken: $pageToken,
-        );
+    public function list(?ListCallsParams $params = null): CallList
+    {
+        $query = ($params ?? new ListCallsParams())->toQuery();
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request(
             'GET',
             $this->path('Calls'),
-            $params->toQuery(),
+            $query,
         );
+        return CallList::fromArray($raw);
+    }
+
+    /**
+     * Fetch the page a previous result's `next_page_uri` points at, following
+     * the link verbatim (PageToken included). Returns null on the last page.
+     */
+    public function nextPage(CallList $page): ?CallList
+    {
+        if ($page->nextPageUri === null || $page->nextPageUri === '') {
+            return null;
+        }
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->requestPageUri($page->nextPageUri);
         return CallList::fromArray($raw);
     }
 
@@ -111,9 +96,9 @@ final class CallsResource extends Resource
 
     // --- Recordings (call-scoped) ---
 
-    public function listRecordings(string $callSid, ?ListRecordingsParams $params = null): RecordingList
+    public function listRecordings(string $callSid, ?ListCallRecordingsParams $params = null): RecordingList
     {
-        $query = ($params ?? new ListRecordingsParams())->toQuery();
+        $query = ($params ?? new ListCallRecordingsParams())->toQuery();
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Recordings'), $query);
         return RecordingList::fromArray($raw);
@@ -155,14 +140,7 @@ final class CallsResource extends Resource
         $this->transport->request('DELETE', $this->path('Calls', $callSid, 'Recordings', $recordingSid));
     }
 
-    // --- Streams ---
-
-    public function listStreams(string $callSid): StreamList
-    {
-        /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Streams'));
-        return StreamList::fromArray($raw);
-    }
+    // --- Streams (start/stop only; the list/fetch GETs return 405 / 20004) ---
 
     public function startStream(string $callSid, StartStreamRequest $body): Stream
     {
@@ -173,13 +151,6 @@ final class CallsResource extends Resource
             null,
             $body->toForm(),
         );
-        return Stream::fromArray($raw);
-    }
-
-    public function getStream(string $callSid, string $streamSid): Stream
-    {
-        /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Streams', $streamSid));
         return Stream::fromArray($raw);
     }
 
@@ -196,14 +167,7 @@ final class CallsResource extends Resource
         return Stream::fromArray($raw);
     }
 
-    // --- SIPREC ---
-
-    public function listSiprec(string $callSid): SiprecList
-    {
-        /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Siprec'));
-        return SiprecList::fromArray($raw);
-    }
+    // --- SIPREC (start/stop only) ---
 
     public function startSiprec(string $callSid, ?StartSiprecRequest $body = null): SiprecSession
     {
@@ -214,13 +178,6 @@ final class CallsResource extends Resource
             null,
             $body !== null ? $body->toForm() : null,
         );
-        return SiprecSession::fromArray($raw);
-    }
-
-    public function getSiprec(string $callSid, string $siprecSid): SiprecSession
-    {
-        /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Siprec', $siprecSid));
         return SiprecSession::fromArray($raw);
     }
 
@@ -237,14 +194,7 @@ final class CallsResource extends Resource
         return SiprecSession::fromArray($raw);
     }
 
-    // --- Transcriptions ---
-
-    public function listTranscriptions(string $callSid): TranscriptionList
-    {
-        /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Transcriptions'));
-        return TranscriptionList::fromArray($raw);
-    }
+    // --- Transcriptions (start/stop only) ---
 
     public function startTranscription(string $callSid, ?StartTranscriptionRequest $body = null): CallTranscription
     {
@@ -255,13 +205,6 @@ final class CallsResource extends Resource
             null,
             $body !== null ? $body->toForm() : null,
         );
-        return CallTranscription::fromArray($raw);
-    }
-
-    public function getTranscription(string $callSid, string $transcriptionSid): CallTranscription
-    {
-        /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', $this->path('Calls', $callSid, 'Transcriptions', $transcriptionSid));
         return CallTranscription::fromArray($raw);
     }
 
@@ -332,17 +275,14 @@ final class CallsResource extends Resource
         return NotificationsList::fromArray($raw);
     }
 
-    /**
-     * @return array<string,mixed>
-     */
-    public function getNotification(string $callSid, string $notificationSid): array
+    public function getNotification(string $callSid, string $notificationSid): Notification
     {
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request(
             'GET',
             $this->path('Calls', $callSid, 'Notifications', $notificationSid),
         );
-        return $raw;
+        return Notification::fromArray($raw);
     }
 
     public function listEvents(string $callSid, ?ListPageParams $params = null): EventsList
@@ -373,50 +313,28 @@ final class CallsResource extends Resource
     }
 
     /**
-     * Generator that lazily walks all pages of `/Calls`, yielding one Call at a time.
+     * Generator that lazily walks all pages of `/Calls`, yielding one Call at a
+     * time. Pagination follows the envelope's `next_page_uri` verbatim (the
+     * PageToken it carries), so iteration stops exactly where the server says
+     * it ends. Stopping the generator early makes no further requests.
      *
      * @return \Generator<int, Call>
      */
-    public function iterate(
-        ?string $to = null,
-        ?string $from = null,
-        ?string $status = null,
-        ?string $parentCallSid = null,
-        ?string $startTime = null,
-        ?string $startTimeLt = null,
-        ?string $startTimeGt = null,
-        ?string $startTimeGte = null,
-        ?string $startTimeLte = null,
-        ?string $endTime = null,
-        ?string $endTimeLt = null,
-        ?string $endTimeGt = null,
-        ?int $pageSize = null,
-    ): \Generator {
-        $page = 0;
+    public function iterate(?ListCallsParams $params = null): \Generator
+    {
+        $page = $this->list($params);
         while (true) {
-            $chunk = $this->list(
-                to: $to,
-                from: $from,
-                status: $status,
-                parentCallSid: $parentCallSid,
-                startTime: $startTime,
-                startTimeLt: $startTimeLt,
-                startTimeGt: $startTimeGt,
-                startTimeGte: $startTimeGte,
-                startTimeLte: $startTimeLte,
-                endTime: $endTime,
-                endTimeLt: $endTimeLt,
-                endTimeGt: $endTimeGt,
-                page: $page,
-                pageSize: $pageSize,
-            );
-            foreach ($chunk->calls as $call) {
+            foreach ($page->calls as $call) {
                 yield $call;
             }
-            if (($chunk->nextPageUri ?? null) === null || $chunk->calls === []) {
+            if ($page->nextPageUri === null || $page->nextPageUri === '' || $page->calls === []) {
                 return;
             }
-            $page++;
+            $next = $this->nextPage($page);
+            if ($next === null) {
+                return;
+            }
+            $page = $next;
         }
     }
 }

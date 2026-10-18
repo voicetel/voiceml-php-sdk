@@ -94,8 +94,8 @@ final class SmokeTest extends TestCase
                 'sid' => self::CALL_SID,
                 'account_sid' => self::ACCOUNT_SID,
                 'api_version' => '2010-04-01',
-                'to' => '+18005551234',
-                'from' => '+18005550000',
+                'to' => '+14155550100',
+                'from' => '+14155550101',
                 'status' => 'queued',
                 'direction' => 'outbound-api',
                 'date_created' => 'now',
@@ -105,8 +105,8 @@ final class SmokeTest extends TestCase
         ]);
 
         $call = $bag['client']->calls->create(new CreateCallRequest(
-            to: '+18005551234',
-            from: '+18005550000',
+            to: '+14155550100',
+            from: '+14155550101',
             url: 'https://example.com/twiml',
         ));
 
@@ -132,8 +132,8 @@ final class SmokeTest extends TestCase
 
         $body = (string) $request->getBody();
         parse_str($body, $parsed);
-        self::assertSame('+18005551234', $parsed['To']);
-        self::assertSame('+18005550000', $parsed['From']);
+        self::assertSame('+14155550100', $parsed['To']);
+        self::assertSame('+14155550101', $parsed['From']);
         self::assertSame('https://example.com/twiml', $parsed['Url']);
     }
 
@@ -147,12 +147,12 @@ final class SmokeTest extends TestCase
             ])),
         ]);
 
-        $bag['client']->calls->list(
+        $bag['client']->calls->list(new ListCallsParams(
             status: 'in-progress',
-            startTimeGte: '2026-05-01',
-            startTimeLte: '2026-05-19',
+            startTime: '2026-05-01',
+            startTimeLt: '2026-05-19',
             pageSize: 25,
-        );
+        ));
 
         /** @var Request $request */
         $request = $bag['history'][0]['request'];
@@ -162,9 +162,9 @@ final class SmokeTest extends TestCase
             $uri,
         );
         $query = $request->getUri()->getQuery();
-        // Literal Twilio wire query names.
-        self::assertStringContainsString('StartTime%3E%3D=2026-05-01', $query);
-        self::assertStringContainsString('StartTime%3C%3D=2026-05-19', $query);
+        // Literal wire query names (spec filters only).
+        self::assertStringContainsString('StartTime=2026-05-01', $query);
+        self::assertStringContainsString('StartTime%3C=2026-05-19', $query);
         self::assertStringContainsString('Status=in-progress', $query);
         self::assertStringContainsString('PageSize=25', $query);
     }
@@ -398,7 +398,7 @@ final class SmokeTest extends TestCase
                     [
                         'sid' => self::PHONE_NUMBER_SID,
                         'account_sid' => self::ACCOUNT_SID,
-                        'phone_number' => '+18005551234',
+                        'phone_number' => '+14155550100',
                         'api_version' => '2010-04-01',
                         'uri' => '/2010-04-01/Accounts/' . self::ACCOUNT_SID
                             . '/IncomingPhoneNumbers/' . self::PHONE_NUMBER_SID . '.json',
@@ -415,11 +415,13 @@ final class SmokeTest extends TestCase
             ])),
         ]);
 
-        $list = $bag['client']->incomingPhoneNumbers->list(phoneNumber: '+18005551234');
+        $list = $bag['client']->incomingPhoneNumbers->list(
+            new \VoiceML\Model\ListIncomingPhoneNumbersParams(phoneNumber: '+14155550100'),
+        );
 
         self::assertCount(1, $list->incomingPhoneNumbers);
         self::assertSame(self::PHONE_NUMBER_SID, $list->incomingPhoneNumbers[0]->sid);
-        self::assertSame('+18005551234', $list->incomingPhoneNumbers[0]->phoneNumber);
+        self::assertSame('+14155550100', $list->incomingPhoneNumbers[0]->phoneNumber);
 
         /** @var Request $request */
         $request = $bag['history'][0]['request'];
@@ -430,7 +432,7 @@ final class SmokeTest extends TestCase
         );
         // E.164 leading `+` round-trips through Guzzle as `%2B`.
         $query = $request->getUri()->getQuery();
-        self::assertStringContainsString('PhoneNumber=%2B18005551234', $query);
+        self::assertStringContainsString('PhoneNumber=%2B14155550100', $query);
     }
 
     public function testIncomingPhoneNumbersCreatePostsFormBody(): void
@@ -439,7 +441,7 @@ final class SmokeTest extends TestCase
             new Response(201, ['Content-Type' => 'application/json'], (string) json_encode([
                 'sid' => self::PHONE_NUMBER_SID,
                 'account_sid' => self::ACCOUNT_SID,
-                'phone_number' => '+18005551234',
+                'phone_number' => '+14155550100',
                 'api_version' => '2010-04-01',
                 'uri' => '/uri',
                 'capabilities' => ['voice' => true, 'sms' => false, 'mms' => false, 'fax' => false],
@@ -449,7 +451,7 @@ final class SmokeTest extends TestCase
         ]);
 
         $ipn = $bag['client']->incomingPhoneNumbers->create(new CreateIncomingPhoneNumberRequest(
-            phoneNumber: '+18005551234',
+            phoneNumber: '+14155550100',
             voiceUrl: 'https://example.com/voice',
             voiceMethod: 'POST',
         ));
@@ -464,7 +466,7 @@ final class SmokeTest extends TestCase
             (string) $request->getUri(),
         );
         parse_str((string) $request->getBody(), $parsed);
-        self::assertSame('+18005551234', $parsed['PhoneNumber']);
+        self::assertSame('+14155550100', $parsed['PhoneNumber']);
         self::assertSame('https://example.com/voice', $parsed['VoiceUrl']);
         self::assertSame('POST', $parsed['VoiceMethod']);
     }
@@ -475,7 +477,7 @@ final class SmokeTest extends TestCase
             new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
                 'sid' => self::PHONE_NUMBER_SID,
                 'account_sid' => self::ACCOUNT_SID,
-                'phone_number' => '+18005551234',
+                'phone_number' => '+14155550100',
                 'api_version' => '2010-04-01',
                 'uri' => '/uri',
                 'capabilities' => ['voice' => true, 'sms' => false, 'mms' => false, 'fax' => false],
@@ -499,7 +501,7 @@ final class SmokeTest extends TestCase
             new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
                 'sid' => self::PHONE_NUMBER_SID,
                 'account_sid' => self::ACCOUNT_SID,
-                'phone_number' => '+18005551234',
+                'phone_number' => '+14155550100',
                 'api_version' => '2010-04-01',
                 'uri' => '/uri',
                 'capabilities' => ['voice' => true, 'sms' => false, 'mms' => false, 'fax' => false],
@@ -566,7 +568,7 @@ final class SmokeTest extends TestCase
         $payload = [
             'sid' => self::PHONE_NUMBER_SID,
             'account_sid' => self::ACCOUNT_SID,
-            'phone_number' => '+18005551234',
+            'phone_number' => '+14155550100',
             'friendly_name' => 'Main Line',
             'api_version' => '2010-04-01',
             'uri' => '/2010-04-01/Accounts/' . self::ACCOUNT_SID
@@ -626,32 +628,36 @@ final class SmokeTest extends TestCase
         self::assertSame('', $ipn->status);
     }
 
-    public function testIncomingPhoneNumberMissingCapabilitiesThrows(): void
+    public function testIncomingPhoneNumberMissingCapabilitiesYieldsAllFalseDefaults(): void
     {
-        $this->expectException(RuntimeException::class);
-        IncomingPhoneNumber::fromArray([
+        // The spec marks `capabilities` nullable — the API may omit it.
+        // Reading any flag then yields false (null-safe default).
+        $ipn = IncomingPhoneNumber::fromArray([
             'sid' => self::PHONE_NUMBER_SID,
             'account_sid' => self::ACCOUNT_SID,
-            'phone_number' => '+18005551234',
+            'phone_number' => '+14155550100',
             'api_version' => '2010-04-01',
             'uri' => '/uri',
             // capabilities deliberately omitted
         ]);
+        self::assertNull($ipn->capabilities);
     }
 
-    public function testIncomingPhoneNumberCapabilitiesMissingRequiredFlagThrows(): void
+    public function testIncomingPhoneNumberCapabilitiesMissingFlagDefaultsToFalse(): void
     {
-        // voice/sms/mms are required; omitting any of them is a protocol error.
-        $this->expectException(RuntimeException::class);
-        IncomingPhoneNumber::fromArray([
+        // Partial capability objects decode tolerantly; absent flags read false.
+        $ipn = IncomingPhoneNumber::fromArray([
             'sid' => self::PHONE_NUMBER_SID,
             'account_sid' => self::ACCOUNT_SID,
-            'phone_number' => '+18005551234',
+            'phone_number' => '+14155550100',
             'api_version' => '2010-04-01',
             'uri' => '/uri',
             'capabilities' => ['voice' => true, 'sms' => false],
             // mms flag deliberately omitted
         ]);
+        self::assertTrue($ipn->capabilities->voice);
+        self::assertFalse($ipn->capabilities->sms);
+        self::assertFalse($ipn->capabilities->mms);
     }
 
     public function testIncomingPhoneNumberCapabilitiesOmittedFaxYieldsNull(): void
@@ -661,7 +667,7 @@ final class SmokeTest extends TestCase
         $ipn = IncomingPhoneNumber::fromArray([
             'sid' => self::PHONE_NUMBER_SID,
             'account_sid' => self::ACCOUNT_SID,
-            'phone_number' => '+18005551234',
+            'phone_number' => '+14155550100',
             'api_version' => '2010-04-01',
             'uri' => '/uri',
             'capabilities' => ['voice' => true, 'sms' => false, 'mms' => false],
@@ -713,7 +719,7 @@ final class SmokeTest extends TestCase
         $payload = [
             'sid' => self::PHONE_NUMBER_SID,
             'account_sid' => self::ACCOUNT_SID,
-            'phone_number' => '+18005551234',
+            'phone_number' => '+14155550100',
             'api_version' => '2010-04-01',
             'uri' => '/uri',
             'type' => 'toll-free',
@@ -818,8 +824,8 @@ final class SmokeTest extends TestCase
         ]);
 
         $bag['client']->conferences->createParticipant($confSid, new \VoiceML\Model\CreateParticipantRequest(
-            from: '+18005550000',
-            to: '+18005551234',
+            from: '+14155550101',
+            to: '+14155550100',
         ));
 
         self::assertCount(1, $bag['history']);
@@ -828,8 +834,8 @@ final class SmokeTest extends TestCase
         self::assertSame('POST', $request->getMethod());
         self::assertStringContainsString("/Conferences/{$confSid}/Participants.json", (string) $request->getUri());
         parse_str((string) $request->getBody(), $form);
-        self::assertSame('+18005550000', $form['From'] ?? null);
-        self::assertSame('+18005551234', $form['To'] ?? null);
+        self::assertSame('+14155550101', $form['From'] ?? null);
+        self::assertSame('+14155550100', $form['To'] ?? null);
     }
 
     public function testListCallNotificationsSendsLogAndMessageDateFilters(): void
@@ -892,7 +898,7 @@ final class SmokeTest extends TestCase
         ]);
 
         $collected = [];
-        foreach ($bag['client']->calls->iterate(pageSize: 2) as $call) {
+        foreach ($bag['client']->calls->iterate(new \VoiceML\Model\ListCallsParams(pageSize: 2)) as $call) {
             $collected[] = $call->sid;
         }
 
@@ -928,7 +934,7 @@ final class SmokeTest extends TestCase
         ]);
 
         $collected = [];
-        foreach ($bag['client']->conferences->iterate(pageSize: 2) as $conf) {
+        foreach ($bag['client']->conferences->iterate(new \VoiceML\Model\ListConferencesParams(pageSize: 2)) as $conf) {
             $collected[] = $conf->sid;
         }
 
@@ -963,7 +969,7 @@ final class SmokeTest extends TestCase
         ]);
 
         $collected = [];
-        foreach ($bag['client']->recordings->iterate(pageSize: 2) as $rec) {
+        foreach ($bag['client']->recordings->iterate(new \VoiceML\Model\ListRecordingsParams(pageSize: 2)) as $rec) {
             $collected[] = $rec->sid;
         }
 
@@ -1052,8 +1058,8 @@ final class SmokeTest extends TestCase
                 'sid' => self::MESSAGE_SID,
                 'account_sid' => self::ACCOUNT_SID,
                 'api_version' => '2010-04-01',
-                'to' => '+18005551234',
-                'from' => '+18005550000',
+                'to' => '+14155550100',
+                'from' => '+14155550101',
                 'body' => 'hi there',
                 'status' => 'sent',
                 'num_segments' => '1',
@@ -1072,9 +1078,9 @@ final class SmokeTest extends TestCase
         ]);
 
         $msg = $bag['client']->messages->create(new \VoiceML\Model\CreateMessageRequest(
-            to: '+18005551234',
+            to: '+14155550100',
             body: 'hi there',
-            from: '+18005550000',
+            from: '+14155550101',
             statusCallback: 'https://example.com/sms-status',
         ));
 
@@ -1101,9 +1107,9 @@ final class SmokeTest extends TestCase
             $request->getHeaderLine('Content-Type'),
         );
         parse_str((string) $request->getBody(), $parsed);
-        self::assertSame('+18005551234', $parsed['To']);
+        self::assertSame('+14155550100', $parsed['To']);
         self::assertSame('hi there', $parsed['Body']);
-        self::assertSame('+18005550000', $parsed['From']);
+        self::assertSame('+14155550101', $parsed['From']);
         self::assertSame('https://example.com/sms-status', $parsed['StatusCallback']);
         self::assertArrayNotHasKey('MessagingServiceSid', $parsed);
     }
@@ -1115,8 +1121,8 @@ final class SmokeTest extends TestCase
                 'sid' => self::MESSAGE_SID,
                 'account_sid' => self::ACCOUNT_SID,
                 'api_version' => '2010-04-01',
-                'to' => '+18005551234',
-                'from' => '+18005550000',
+                'to' => '+14155550100',
+                'from' => '+14155550101',
                 'body' => 'persisted',
                 'status' => 'failed',
                 'num_segments' => '1',
@@ -1158,7 +1164,7 @@ final class SmokeTest extends TestCase
         ]);
 
         $bag['client']->messages->list(new \VoiceML\Model\ListMessagesParams(
-            to: '+18005551234',
+            to: '+14155550100',
             dateSent: '2026-06-01',
             dateSentLt: '2026-06-15',
             dateSentGt: '2026-05-01',
@@ -1173,7 +1179,7 @@ final class SmokeTest extends TestCase
             $uri,
         );
         $query = $request->getUri()->getQuery();
-        self::assertStringContainsString('To=%2B18005551234', $query);
+        self::assertStringContainsString('To=%2B14155550100', $query);
         self::assertStringContainsString('DateSent=2026-06-01', $query);
         self::assertStringContainsString('DateSent%3C=2026-06-15', $query);
         self::assertStringContainsString('DateSent%3E=2026-05-01', $query);
@@ -1187,8 +1193,8 @@ final class SmokeTest extends TestCase
                 'sid' => self::MESSAGE_SID,
                 'account_sid' => self::ACCOUNT_SID,
                 'api_version' => '2010-04-01',
-                'to' => '+18005551234',
-                'from' => '+18005550000',
+                'to' => '+14155550100',
+                'from' => '+14155550101',
                 'body' => '',
                 'status' => 'sent',
                 'num_segments' => '1',
@@ -1259,7 +1265,7 @@ final class SmokeTest extends TestCase
         ]);
 
         $collected = [];
-        foreach ($bag['client']->messages->iterate(pageSize: 2) as $m) {
+        foreach ($bag['client']->messages->iterate(new \VoiceML\Model\ListMessagesParams(pageSize: 2)) as $m) {
             $collected[] = $m->sid;
         }
 

@@ -8,19 +8,20 @@ use VoiceML\Model\AssistantsV1MessageList;
 use VoiceML\Transport;
 
 /** `/v1/Sessions/{id}/Messages` — read-only paginated session-message list. */
-final class AssistantsV1SessionMessagesResource
+final class AssistantsV1SessionMessagesResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $sessionId,
     ) {
+        parent::__construct($transport);
     }
 
     /** @param array<string,mixed> $query */
     public function list(array $query = []): AssistantsV1MessageList
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Sessions/{$this->sessionId}/Messages", $query);
+        $raw = $this->transport->request('GET', $this->v1Path('Sessions', $this->sessionId, 'Messages'), $query);
         return AssistantsV1MessageList::fromArray($raw);
     }
 }

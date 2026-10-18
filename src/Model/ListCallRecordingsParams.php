@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace VoiceML\Model;
 
 /**
- * Query params for `GET /Calls/{sid}/Recordings` and `GET /Conferences/{sid}/Recordings`.
+ * Query params for the call- and conference-scoped recording lists
+ * (`GET /Calls/{CallSid}/Recordings`, `GET /Conferences/{ConferenceSid}/Recordings`).
+ *
+ * Only the DateCreated filters are legal here; the account-wide
+ * {@see ListRecordingsParams} additionally carries CallSid / ConferenceSid /
+ * IncludeSoftDeleted.
  */
 final class ListCallRecordingsParams
 {

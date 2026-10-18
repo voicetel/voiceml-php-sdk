@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace VoiceML\Model;
 
-final class SiprecList extends Page
+/**
+ * `GET /Messages/{sid}/Media` list envelope.
+ */
+final class MessageMediaList extends Page
 {
     /**
-     * @param list<SiprecSession> $siprec
+     * @param list<MessageMedia> $mediaList
      */
     public function __construct(
-        public readonly array $siprec = [],
+        public readonly array $mediaList = [],
         ?int $page = 0,
         ?int $pageSize = null,
-        ?int $numPages = null,
-        ?int $total = null,
         ?int $start = null,
         ?int $end = null,
         ?string $firstPageUri = null,
@@ -25,8 +26,6 @@ final class SiprecList extends Page
         parent::__construct(
             $page,
             $pageSize,
-            $numPages,
-            $total,
             $start,
             $end,
             $firstPageUri,
@@ -41,22 +40,20 @@ final class SiprecList extends Page
      */
     public static function fromArray(array $data): self
     {
-        /** @var list<SiprecSession> $items */
+        /** @var list<MessageMedia> $items */
         $items = [];
-        if (isset($data['siprec']) && is_array($data['siprec'])) {
-            foreach ($data['siprec'] as $row) {
+        if (isset($data['media_list']) && is_array($data['media_list'])) {
+            foreach ($data['media_list'] as $row) {
                 if (is_array($row)) {
-                    $items[] = SiprecSession::fromArray($row);
+                    $items[] = MessageMedia::fromArray($row);
                 }
             }
         }
-        [$page, $pageSize, $numPages, $total, $start, $end, $firstPageUri, $nextPageUri, $previousPageUri, $uri] = self::pageFields($data);
+        [$page, $pageSize, $start, $end, $firstPageUri, $nextPageUri, $previousPageUri, $uri] = self::pageFields($data);
         return new self(
-            siprec: $items,
+            mediaList: $items,
             page: $page,
             pageSize: $pageSize,
-            numPages: $numPages,
-            total: $total,
             start: $start,
             end: $end,
             firstPageUri: $firstPageUri,

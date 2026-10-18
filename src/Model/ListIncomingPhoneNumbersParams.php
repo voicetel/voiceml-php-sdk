@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace VoiceML\Model;
 
 /**
- * Query params for type-specific `/IncomingPhoneNumbers/{Local,Mobile,TollFree}` list endpoints.
+ * Query params for `GET /IncomingPhoneNumbers` and the typed
+ * `/IncomingPhoneNumbers/{Local,Mobile,TollFree}` list endpoints.
+ *
+ * Carries PhoneNumber, FriendlyName, Beta and Origin filters plus standard pagination.
  */
-final class ListTypedIncomingPhoneNumbersParams
+final class ListIncomingPhoneNumbersParams
 {
     public function __construct(
         public readonly ?string $phoneNumber = null,

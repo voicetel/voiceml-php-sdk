@@ -11,13 +11,14 @@ use VoiceML\Transport;
  * Read-only `/v1/Services/{ChatServiceSid}/Users/{UserSid}/Conversations`.
  * Produced via {@see ConversationsV1ServiceUsersResource::conversations()}.
  */
-final class ConversationsV1ServiceUserConversationsResource
+final class ConversationsV1ServiceUserConversationsResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $chatServiceSid,
         private readonly string $userSid,
     ) {
+        parent::__construct($transport);
     }
 
     /** @param array<string,mixed> $query */
@@ -26,7 +27,7 @@ final class ConversationsV1ServiceUserConversationsResource
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request(
             'GET',
-            "/v1/Services/{$this->chatServiceSid}/Users/{$this->userSid}/Conversations",
+            $this->v1Path('Services', $this->chatServiceSid, 'Users', $this->userSid, 'Conversations'),
             $query,
         );
         return ConversationsV1ServiceUserConversationList::fromArray($raw);

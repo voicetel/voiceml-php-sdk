@@ -8,16 +8,17 @@ use VoiceML\Model\PricingTrunkingCountry;
 use VoiceML\Transport;
 
 /** `$client->pricing->v2->trunking` — `.countries` + `.numbers`. */
-final class PricingV2TrunkingResource
+final class PricingV2TrunkingResource extends Resource
 {
     public readonly PricingCountriesResource $countries;
     public readonly PricingTrunkingNumbersV2Resource $numbers;
 
     public function __construct(Transport $transport)
     {
+        parent::__construct($transport);
         $this->countries = new PricingCountriesResource(
             $transport,
-            '/v2/Trunking/Countries',
+            $this->v2Path('Trunking', 'Countries'),
             static fn (array $data): PricingTrunkingCountry => PricingTrunkingCountry::fromArray($data),
         );
         $this->numbers = new PricingTrunkingNumbersV2Resource($transport);

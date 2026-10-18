@@ -5,20 +5,34 @@ declare(strict_types=1);
 namespace VoiceML\Model;
 
 /**
- * `GET /Calls/{sid}/Notifications` — always an empty list (compat stub).
+ * `GET /Notifications` / `GET /Calls/{sid}/Notifications` list envelope.
  */
-final class NotificationsList implements Model
+final class NotificationsList extends Page
 {
     /**
-     * @param list<mixed> $notifications
+     * @param list<Notification> $notifications
      */
     public function __construct(
         public readonly array $notifications = [],
-        public readonly int $page = 0,
-        public readonly int $pageSize = 0,
-        public readonly int $total = 0,
-        public readonly ?string $uri = null,
+        ?int $page = 0,
+        ?int $pageSize = null,
+        ?int $start = null,
+        ?int $end = null,
+        ?string $firstPageUri = null,
+        ?string $nextPageUri = null,
+        ?string $previousPageUri = null,
+        ?string $uri = null,
     ) {
+        parent::__construct(
+            $page,
+            $pageSize,
+            $start,
+            $end,
+            $firstPageUri,
+            $nextPageUri,
+            $previousPageUri,
+            $uri,
+        );
     }
 
     /**
@@ -26,16 +40,26 @@ final class NotificationsList implements Model
      */
     public static function fromArray(array $data): self
     {
-        /** @var list<mixed> $items */
-        $items = isset($data['notifications']) && is_array($data['notifications'])
-            ? array_values($data['notifications'])
-            : [];
+        /** @var list<Notification> $items */
+        $items = [];
+        if (isset($data['notifications']) && is_array($data['notifications'])) {
+            foreach ($data['notifications'] as $row) {
+                if (is_array($row)) {
+                    $items[] = Notification::fromArray($row);
+                }
+            }
+        }
+        [$page, $pageSize, $start, $end, $firstPageUri, $nextPageUri, $previousPageUri, $uri] = self::pageFields($data);
         return new self(
             notifications: $items,
-            page: isset($data['page']) ? (int) $data['page'] : 0,
-            pageSize: isset($data['page_size']) ? (int) $data['page_size'] : 0,
-            total: isset($data['total']) ? (int) $data['total'] : 0,
-            uri: isset($data['uri']) ? (string) $data['uri'] : null,
+            page: $page,
+            pageSize: $pageSize,
+            start: $start,
+            end: $end,
+            firstPageUri: $firstPageUri,
+            nextPageUri: $nextPageUri,
+            previousPageUri: $previousPageUri,
+            uri: $uri,
         );
     }
 }

@@ -19,6 +19,8 @@ final class UpdateApplicationRequest extends FormRequest
         public readonly ?string $statusCallback = null,
         public readonly ?string $statusCallbackMethod = null,
         public readonly ?string $statusCallbackEvent = null,
+        public readonly ?string $messageStatusCallback = null,
+        public readonly ?string $smsStatusCallback = null,
     ) {
     }
 
@@ -34,6 +36,8 @@ final class UpdateApplicationRequest extends FormRequest
             'StatusCallback' => 'statusCallback',
             'StatusCallbackMethod' => 'statusCallbackMethod',
             'StatusCallbackEvent' => 'statusCallbackEvent',
+            'MessageStatusCallback' => 'messageStatusCallback',
+            'SmsStatusCallback' => 'smsStatusCallback',
         ];
     }
 }

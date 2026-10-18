@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace VoiceML\Model;
 
 /**
- * Query params for `GET /Calls`.
+ * Query params for `GET /Calls`. The spec declares `StartTime`, `StartTime<`
+ * and `StartTime>` (same for `EndTime`) — the legacy `StartTime>=` /
+ * `StartTime<=` operators were removed from the SDK.
  */
 final class ListCallsParams
 {
@@ -17,8 +19,6 @@ final class ListCallsParams
         public readonly ?string $startTime = null,
         public readonly ?string $startTimeLt = null,
         public readonly ?string $startTimeGt = null,
-        public readonly ?string $startTimeGte = null,
-        public readonly ?string $startTimeLte = null,
         public readonly ?string $endTime = null,
         public readonly ?string $endTimeLt = null,
         public readonly ?string $endTimeGt = null,
@@ -41,8 +41,6 @@ final class ListCallsParams
             'StartTime' => $this->startTime,
             'StartTime<' => $this->startTimeLt,
             'StartTime>' => $this->startTimeGt,
-            'StartTime>=' => $this->startTimeGte,
-            'StartTime<=' => $this->startTimeLte,
             'EndTime' => $this->endTime,
             'EndTime<' => $this->endTimeLt,
             'EndTime>' => $this->endTimeGt,

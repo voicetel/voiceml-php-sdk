@@ -101,25 +101,41 @@ final class QueuesResource extends Resource
     }
 
     /**
-     * Generator that lazily walks all pages of `/Queues`, yielding one Queue at a time.
+     * Generator that lazily walks all pages of `/Queues`, yielding one Queue at
+     * a time. Follows `next_page_uri` verbatim; stopping the generator early
+     * makes no further requests.
      *
      * @return \Generator<int, Queue>
      */
     public function iterate(?int $pageSize = null): \Generator
     {
-        $page = 0;
+        $page = $this->list(new ListPageParams(pageSize: $pageSize));
         while (true) {
-            $chunk = $this->list(new ListPageParams(
-                page: $page,
-                pageSize: $pageSize,
-            ));
-            foreach ($chunk->queues as $queue) {
+            foreach ($page->queues as $queue) {
                 yield $queue;
             }
-            if (($chunk->nextPageUri ?? null) === null || $chunk->queues === []) {
+            if ($page->nextPageUri === null || $page->nextPageUri === '' || $page->queues === []) {
                 return;
             }
-            $page++;
+            $next = $this->nextPage($page);
+            if ($next === null) {
+                return;
+            }
+            $page = $next;
         }
+    }
+
+    /**
+     * Fetch the page a previous result's `next_page_uri` points at, following
+     * the link verbatim. Returns null on the last page.
+     */
+    public function nextPage(QueueList $page): ?QueueList
+    {
+        if ($page->nextPageUri === null || $page->nextPageUri === '') {
+            return null;
+        }
+        /** @var array<string,mixed> $raw */
+        $raw = $this->transport->requestPageUri($page->nextPageUri);
+        return QueueList::fromArray($raw);
     }
 }

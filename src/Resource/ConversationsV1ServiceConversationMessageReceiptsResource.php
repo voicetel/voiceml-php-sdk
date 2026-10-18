@@ -12,14 +12,15 @@ use VoiceML\Transport;
  * Read-only `/v1/Services/{ChatServiceSid}/Conversations/{ConversationSid}/Messages/{MessageSid}/Receipts`.
  * Produced via {@see ConversationsV1ServiceConversationMessagesResource::receipts()}.
  */
-final class ConversationsV1ServiceConversationMessageReceiptsResource
+final class ConversationsV1ServiceConversationMessageReceiptsResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $chatServiceSid,
         private readonly string $conversationSid,
         private readonly string $messageSid,
     ) {
+        parent::__construct($transport);
     }
 
     /** @param array<string,mixed> $query */
@@ -28,7 +29,7 @@ final class ConversationsV1ServiceConversationMessageReceiptsResource
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request(
             'GET',
-            "/v1/Services/{$this->chatServiceSid}/Conversations/{$this->conversationSid}/Messages/{$this->messageSid}/Receipts",
+            $this->v1Path('Services', $this->chatServiceSid, 'Conversations', $this->conversationSid, 'Messages', $this->messageSid, 'Receipts'),
             $query,
         );
         return ConversationsV1ServiceConversationMessageReceiptList::fromArray($raw);
@@ -39,7 +40,7 @@ final class ConversationsV1ServiceConversationMessageReceiptsResource
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request(
             'GET',
-            "/v1/Services/{$this->chatServiceSid}/Conversations/{$this->conversationSid}/Messages/{$this->messageSid}/Receipts/{$sid}",
+            $this->v1Path('Services', $this->chatServiceSid, 'Conversations', $this->conversationSid, 'Messages', $this->messageSid, 'Receipts', $sid),
         );
         return ConversationsV1ServiceConversationMessageReceipt::fromArray($raw);
     }

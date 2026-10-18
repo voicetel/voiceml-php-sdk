@@ -17,6 +17,11 @@ final class CreateIncomingPhoneNumberRequest extends FormRequest
         public readonly ?string $voiceMethod = null,
         public readonly ?string $voiceFallbackUrl = null,
         public readonly ?string $voiceFallbackMethod = null,
+        public readonly ?string $smsUrl = null,
+        public readonly ?string $smsMethod = null,
+        public readonly ?string $smsFallbackUrl = null,
+        public readonly ?string $smsFallbackMethod = null,
+        public readonly ?string $smsApplicationSid = null,
     ) {
     }
 
@@ -28,6 +33,11 @@ final class CreateIncomingPhoneNumberRequest extends FormRequest
             'VoiceMethod' => 'voiceMethod',
             'VoiceFallbackUrl' => 'voiceFallbackUrl',
             'VoiceFallbackMethod' => 'voiceFallbackMethod',
+            'SmsUrl' => 'smsUrl',
+            'SmsMethod' => 'smsMethod',
+            'SmsFallbackUrl' => 'smsFallbackUrl',
+            'SmsFallbackMethod' => 'smsFallbackMethod',
+            'SmsApplicationSid' => 'smsApplicationSid',
         ];
     }
 }

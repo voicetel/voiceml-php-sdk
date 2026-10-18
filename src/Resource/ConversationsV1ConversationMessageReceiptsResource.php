@@ -13,13 +13,14 @@ use VoiceML\Transport;
  * Bound to a parent (ConversationSid, MessageSid) pair; produced via
  * {@see ConversationsV1ConversationMessagesResource::receipts()}.
  */
-final class ConversationsV1ConversationMessageReceiptsResource
+final class ConversationsV1ConversationMessageReceiptsResource extends Resource
 {
     public function __construct(
-        private readonly Transport $transport,
+        Transport $transport,
         private readonly string $conversationSid,
         private readonly string $messageSid,
     ) {
+        parent::__construct($transport);
     }
 
     /** @param array<string,mixed> $query */
@@ -28,7 +29,7 @@ final class ConversationsV1ConversationMessageReceiptsResource
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request(
             'GET',
-            "/v1/Conversations/{$this->conversationSid}/Messages/{$this->messageSid}/Receipts",
+            $this->v1Path('Conversations', $this->conversationSid, 'Messages', $this->messageSid, 'Receipts'),
             $query,
         );
         return ConversationsV1ConversationMessageReceiptList::fromArray($raw);
@@ -39,7 +40,7 @@ final class ConversationsV1ConversationMessageReceiptsResource
         /** @var array<string,mixed> $raw */
         $raw = $this->transport->request(
             'GET',
-            "/v1/Conversations/{$this->conversationSid}/Messages/{$this->messageSid}/Receipts/{$sid}",
+            $this->v1Path('Conversations', $this->conversationSid, 'Messages', $this->messageSid, 'Receipts', $sid),
         );
         return ConversationsV1ConversationMessageReceipt::fromArray($raw);
     }

@@ -8,21 +8,17 @@ use VoiceML\Model\ConversationsV1Conversation;
 use VoiceML\Model\ConversationsV1ConversationList;
 use VoiceML\Model\CreateConversationsV1ConversationRequest;
 use VoiceML\Model\UpdateConversationsV1ConversationRequest;
-use VoiceML\Transport;
 
 /** `/v1/Conversations` — Twilio Conversations v1 top-level resource. */
-final class ConversationsV1ConversationsResource
+final class ConversationsV1ConversationsResource extends Resource
 {
-    public function __construct(private readonly Transport $transport)
-    {
-    }
 
     /** @param array<string,mixed>|CreateConversationsV1ConversationRequest $body */
     public function create(array|CreateConversationsV1ConversationRequest $body = []): ConversationsV1Conversation
     {
         $form = $body instanceof CreateConversationsV1ConversationRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', '/v1/Conversations', null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Conversations'), null, $form);
         return ConversationsV1Conversation::fromArray($raw);
     }
 
@@ -30,14 +26,14 @@ final class ConversationsV1ConversationsResource
     public function list(array $query = []): ConversationsV1ConversationList
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', '/v1/Conversations', $query);
+        $raw = $this->transport->request('GET', $this->v1Path('Conversations'), $query);
         return ConversationsV1ConversationList::fromArray($raw);
     }
 
     public function fetch(string $conversationSid): ConversationsV1Conversation
     {
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('GET', "/v1/Conversations/{$conversationSid}");
+        $raw = $this->transport->request('GET', $this->v1Path('Conversations', $conversationSid));
         return ConversationsV1Conversation::fromArray($raw);
     }
 
@@ -46,13 +42,13 @@ final class ConversationsV1ConversationsResource
     {
         $form = $body instanceof UpdateConversationsV1ConversationRequest ? $body->toArray() : $body;
         /** @var array<string,mixed> $raw */
-        $raw = $this->transport->request('POST', "/v1/Conversations/{$conversationSid}", null, $form);
+        $raw = $this->transport->request('POST', $this->v1Path('Conversations', $conversationSid), null, $form);
         return ConversationsV1Conversation::fromArray($raw);
     }
 
     public function delete(string $conversationSid): void
     {
-        $this->transport->request('DELETE', "/v1/Conversations/{$conversationSid}");
+        $this->transport->request('DELETE', $this->v1Path('Conversations', $conversationSid));
     }
 
     /** Sub-collection: per-conversation messages. */

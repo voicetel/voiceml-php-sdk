@@ -5,22 +5,34 @@ declare(strict_types=1);
 namespace VoiceML\Model;
 
 /**
- * `GET /Calls/{sid}/Events` — always an empty list (compat stub).
- *
- * Canonical event source is the customer's StatusCallback URL.
+ * `GET /Calls/{sid}/Events` list envelope.
  */
-final class EventsList implements Model
+final class EventsList extends Page
 {
     /**
-     * @param list<mixed> $events
+     * @param list<CallEvent> $events
      */
     public function __construct(
         public readonly array $events = [],
-        public readonly int $page = 0,
-        public readonly int $pageSize = 0,
-        public readonly int $total = 0,
-        public readonly ?string $uri = null,
+        ?int $page = 0,
+        ?int $pageSize = null,
+        ?int $start = null,
+        ?int $end = null,
+        ?string $firstPageUri = null,
+        ?string $nextPageUri = null,
+        ?string $previousPageUri = null,
+        ?string $uri = null,
     ) {
+        parent::__construct(
+            $page,
+            $pageSize,
+            $start,
+            $end,
+            $firstPageUri,
+            $nextPageUri,
+            $previousPageUri,
+            $uri,
+        );
     }
 
     /**
@@ -28,16 +40,26 @@ final class EventsList implements Model
      */
     public static function fromArray(array $data): self
     {
-        /** @var list<mixed> $items */
-        $items = isset($data['events']) && is_array($data['events'])
-            ? array_values($data['events'])
-            : [];
+        /** @var list<CallEvent> $items */
+        $items = [];
+        if (isset($data['events']) && is_array($data['events'])) {
+            foreach ($data['events'] as $row) {
+                if (is_array($row)) {
+                    $items[] = CallEvent::fromArray($row);
+                }
+            }
+        }
+        [$page, $pageSize, $start, $end, $firstPageUri, $nextPageUri, $previousPageUri, $uri] = self::pageFields($data);
         return new self(
             events: $items,
-            page: isset($data['page']) ? (int) $data['page'] : 0,
-            pageSize: isset($data['page_size']) ? (int) $data['page_size'] : 0,
-            total: isset($data['total']) ? (int) $data['total'] : 0,
-            uri: isset($data['uri']) ? (string) $data['uri'] : null,
+            page: $page,
+            pageSize: $pageSize,
+            start: $start,
+            end: $end,
+            firstPageUri: $firstPageUri,
+            nextPageUri: $nextPageUri,
+            previousPageUri: $previousPageUri,
+            uri: $uri,
         );
     }
 }
