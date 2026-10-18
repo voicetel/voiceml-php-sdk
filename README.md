@@ -2,7 +2,7 @@
 
 The official PHP client for the [VoiceML REST API](https://voicetel.com/docs/api/v0.9/voiceml/) — Twilio-compatible outbound voice and answering-machine-detection from VoiceTel, with modern PHP 8.1+ ergonomics and battle-tested Guzzle transport.
 
-![Version](https://img.shields.io/badge/version-0.9.2-blue)
+![Version](https://img.shields.io/badge/version-0.9.3-blue)
 ![PHP](https://img.shields.io/badge/php-%E2%89%A58.1-blue)
 ![License](https://img.shields.io/badge/license-MIT%20%2B%20Commons%20Clause-green)
 ![Tests](https://img.shields.io/badge/tests-110%20unit-brightgreen)
@@ -100,7 +100,7 @@ foreach ($client->queues->list()->queues as $q) {
 
 ## 🔑 Authentication
 
-Every endpoint uses **HTTP Basic** with your `AccountSid` as the username and your per-tenant API key as the password — identical to Twilio's auth shape, so credentials issued for Twilio code work here unchanged.
+Every endpoint uses **HTTP Basic** with your `AccountSid` as the username and your per-tenant API key as the password — the same positions Twilio SDKs use, so existing credential-passing code migrates unchanged. VoiceML issues its own credentials; Twilio-issued credentials do not work here.
 
 ```php
 <?php
