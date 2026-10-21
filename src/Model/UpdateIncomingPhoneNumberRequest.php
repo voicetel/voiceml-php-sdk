@@ -19,6 +19,9 @@ final class UpdateIncomingPhoneNumberRequest extends FormRequest
         public readonly ?string $smsFallbackUrl = null,
         public readonly ?string $smsFallbackMethod = null,
         public readonly ?string $smsApplicationSid = null,
+        public readonly ?string $voiceApplicationSid = null,
+        public readonly ?string $statusCallback = null,
+        public readonly ?string $statusCallbackMethod = null,
     ) {
     }
 
@@ -34,6 +37,9 @@ final class UpdateIncomingPhoneNumberRequest extends FormRequest
             'SmsFallbackUrl' => 'smsFallbackUrl',
             'SmsFallbackMethod' => 'smsFallbackMethod',
             'SmsApplicationSid' => 'smsApplicationSid',
+            'VoiceApplicationSid' => 'voiceApplicationSid',
+            'StatusCallback' => 'statusCallback',
+            'StatusCallbackMethod' => 'statusCallbackMethod',
         ];
     }
 }

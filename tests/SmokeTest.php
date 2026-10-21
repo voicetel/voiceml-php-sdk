@@ -22,6 +22,7 @@ use VoiceML\Exception\RateLimitException;
 use RuntimeException;
 use VoiceML\Model\CreateCallRequest;
 use VoiceML\Model\CreateIncomingPhoneNumberRequest;
+use VoiceML\Model\CreateOutgoingCallerIdRequest;
 use VoiceML\Model\IncomingPhoneNumber;
 use VoiceML\Model\ListCallsParams;
 use VoiceML\Model\Participant;
@@ -454,6 +455,9 @@ final class SmokeTest extends TestCase
             phoneNumber: '+14155550100',
             voiceUrl: 'https://example.com/voice',
             voiceMethod: 'POST',
+            voiceApplicationSid: 'AP00000000000000000000000000000001',
+            statusCallback: 'https://example.com/inbound-status',
+            statusCallbackMethod: 'POST',
         ));
 
         self::assertSame(self::PHONE_NUMBER_SID, $ipn->sid);
@@ -469,6 +473,9 @@ final class SmokeTest extends TestCase
         self::assertSame('+14155550100', $parsed['PhoneNumber']);
         self::assertSame('https://example.com/voice', $parsed['VoiceUrl']);
         self::assertSame('POST', $parsed['VoiceMethod']);
+        self::assertSame('AP00000000000000000000000000000001', $parsed['VoiceApplicationSid']);
+        self::assertSame('https://example.com/inbound-status', $parsed['StatusCallback']);
+        self::assertSame('POST', $parsed['StatusCallbackMethod']);
     }
 
     public function testIncomingPhoneNumbersGetUsesSidInPath(): void
@@ -511,7 +518,12 @@ final class SmokeTest extends TestCase
 
         $bag['client']->incomingPhoneNumbers->update(
             self::PHONE_NUMBER_SID,
-            new UpdateIncomingPhoneNumberRequest(voiceUrl: 'https://example.com/v2'),
+            new UpdateIncomingPhoneNumberRequest(
+                voiceUrl: 'https://example.com/v2',
+                voiceApplicationSid: 'AP00000000000000000000000000000002',
+                statusCallback: 'https://example.com/inbound-status-v2',
+                statusCallbackMethod: 'GET',
+            ),
         );
 
         /** @var Request $request */
@@ -523,6 +535,9 @@ final class SmokeTest extends TestCase
         );
         parse_str((string) $request->getBody(), $parsed);
         self::assertSame('https://example.com/v2', $parsed['VoiceUrl']);
+        self::assertSame('AP00000000000000000000000000000002', $parsed['VoiceApplicationSid']);
+        self::assertSame('https://example.com/inbound-status-v2', $parsed['StatusCallback']);
+        self::assertSame('GET', $parsed['StatusCallbackMethod']);
         self::assertArrayNotHasKey('VoiceMethod', $parsed);
     }
 
@@ -541,6 +556,46 @@ final class SmokeTest extends TestCase
             '/IncomingPhoneNumbers/' . self::PHONE_NUMBER_SID . '.json',
             (string) $request->getUri(),
         );
+    }
+
+    public function testOutgoingCallerIdsCreatePostsFormBody(): void
+    {
+        $bag = $this->makeClient([
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'account_sid' => self::ACCOUNT_SID,
+                'phone_number' => '+14155550100',
+                'friendly_name' => 'Desk',
+                'validation_code' => '123456',
+                'call_sid' => self::CALL_SID,
+            ])),
+        ]);
+
+        $validation = $bag['client']->outgoingCallerIds->create(new CreateOutgoingCallerIdRequest(
+            phoneNumber: '+14155550100',
+            friendlyName: 'Desk',
+            callDelay: 30,
+            extension: '89',
+            statusCallback: 'https://example.com/verification',
+            statusCallbackMethod: 'POST',
+        ));
+
+        self::assertSame('123456', $validation->validationCode);
+        self::assertSame(self::CALL_SID, $validation->callSid);
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('POST', $request->getMethod());
+        self::assertStringContainsString(
+            '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/OutgoingCallerIds.json',
+            (string) $request->getUri(),
+        );
+        parse_str((string) $request->getBody(), $parsed);
+        self::assertSame('+14155550100', $parsed['PhoneNumber']);
+        self::assertSame('Desk', $parsed['FriendlyName']);
+        self::assertSame('30', $parsed['CallDelay']);
+        self::assertSame('89', $parsed['Extension']);
+        self::assertSame('https://example.com/verification', $parsed['StatusCallback']);
+        self::assertSame('POST', $parsed['StatusCallbackMethod']);
     }
 
     public function testRecordingsAudioPathKeepsDotWavAndOmitsDotJson(): void
