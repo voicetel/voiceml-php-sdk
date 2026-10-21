@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.4] - 2026-10-21
+
+### Added
+- **IncomingPhoneNumbers**: `voiceApplicationSid`, `statusCallback` and
+  `statusCallbackMethod` on `CreateIncomingPhoneNumberRequest` and
+  `UpdateIncomingPhoneNumberRequest` — bind a voice application and
+  receive inbound status callbacks (#296).
+- **OutgoingCallerIds**: `callDelay`, `extension`, `statusCallback` and
+  `statusCallbackMethod` on `CreateOutgoingCallerIdRequest` —
+  verification-call parameters (#296).
+
 ## [0.9.3] - 2026-10-18
 
 ### Breaking changes

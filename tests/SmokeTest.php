@@ -861,7 +861,7 @@ final class SmokeTest extends TestCase
 
     public function testVersionIs092(): void
     {
-        self::assertSame('0.9.3', Version::VERSION);
+        self::assertSame('0.9.4', Version::VERSION);
     }
 
     public function testCreateParticipantSendsFromAndTo(): void
