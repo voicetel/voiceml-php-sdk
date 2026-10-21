@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.9.5] - 2026-10-21
+
+### Added
+- **Calls**: `timeLimit` on `CreateCallRequest` — max call duration in
+  seconds (explicit `0` or values above `14400` are rejected; a negative
+  value disables the limit) (#296).
+- **Conferences**: `conferenceStatusCallback`, `conferenceStatusCallbackMethod`
+  and `conferenceStatusCallbackEvent` on `CreateParticipantRequest` —
+  conference lifecycle webhooks for the participant (#296).
+- **Conference recordings**: `pauseBehavior` on
+  `UpdateConferenceRecordingRequest`, mirroring the call-scoped recording
+  update (`skip` leaves the paused span out; `silence` keeps it) (#296).
+- **Applications**: `smsUrl`, `smsMethod`, `smsFallbackUrl`,
+  `smsFallbackMethod` and `publicApplicationConnectEnabled` on
+  `CreateApplicationRequest` and `UpdateApplicationRequest` (#296).
+- **Messages**: `sendAt` (RFC 3339 UTC date-time string) and `scheduleType`
+  (`fixed`) on `CreateMessageRequest` for scheduled sending via a Messaging
+  Service (#296).
+- **Transcriptions**: `speechModel`, `enableAutomaticPunctuation` and
+  `intelligenceService` on `StartTranscriptionRequest` (#296).
+
+### Changed
+- **Transcriptions**: `StartTranscriptionRequest::$statusCallback` renamed
+  to `$statusCallbackUrl` (wire field `StatusCallback` → `StatusCallbackUrl`,
+  the API's REST name for this route; the old wire name was never read by
+  the server) (#296).
+
 ## [0.9.4] - 2026-10-21
 
 ### Added
