@@ -20,6 +20,9 @@ final class CreateParticipantRequest
         public readonly ?string $statusCallback = null,
         public readonly ?string $statusCallbackMethod = null,
         public readonly ?string $statusCallbackEvent = null,
+        public readonly ?string $conferenceStatusCallback = null,
+        public readonly ?string $conferenceStatusCallbackMethod = null,
+        public readonly ?string $conferenceStatusCallbackEvent = null,
     ) {
     }
 
@@ -39,6 +42,9 @@ final class CreateParticipantRequest
             'StatusCallback' => $this->statusCallback,
             'StatusCallbackMethod' => $this->statusCallbackMethod,
             'StatusCallbackEvent' => $this->statusCallbackEvent,
+            'ConferenceStatusCallback' => $this->conferenceStatusCallback,
+            'ConferenceStatusCallbackMethod' => $this->conferenceStatusCallbackMethod,
+            'ConferenceStatusCallbackEvent' => $this->conferenceStatusCallbackEvent,
         ];
     }
 }

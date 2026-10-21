@@ -13,6 +13,10 @@ use VoiceML\Exception\ValidationException;
  * when omitted. `body` and `mediaUrl` are individually optional but at least
  * one must be present (media-only MMS messages are valid). `mediaUrl` is sent
  * as repeated `MediaUrl` keys, one per attachment.
+ *
+ * `sendAt` schedules the message for a future UTC time (RFC 3339 / ISO-8601
+ * date-time string, e.g. `2026-10-21T15:00:00Z`); it requires `scheduleType`
+ * (`fixed` is the only supported value) and `messagingServiceSid`.
  */
 final class CreateMessageRequest extends FormRequest
 {
@@ -28,6 +32,8 @@ final class CreateMessageRequest extends FormRequest
         public readonly ?int $validityPeriod = null,
         public readonly ?string $statusCallback = null,
         public readonly ?string $statusCallbackMethod = null,
+        public readonly ?string $sendAt = null,
+        public readonly ?string $scheduleType = null,
     ) {
         if (($body === null || $body === '') && ($mediaUrl === null || $mediaUrl === [])) {
             throw new ValidationException(
@@ -47,6 +53,8 @@ final class CreateMessageRequest extends FormRequest
             'ValidityPeriod' => 'validityPeriod',
             'StatusCallback' => 'statusCallback',
             'StatusCallbackMethod' => 'statusCallbackMethod',
+            'SendAt' => 'sendAt',
+            'ScheduleType' => 'scheduleType',
         ];
     }
 }

@@ -21,6 +21,11 @@ final class UpdateApplicationRequest extends FormRequest
         public readonly ?string $statusCallbackEvent = null,
         public readonly ?string $messageStatusCallback = null,
         public readonly ?string $smsStatusCallback = null,
+        public readonly ?string $smsUrl = null,
+        public readonly ?string $smsMethod = null,
+        public readonly ?string $smsFallbackUrl = null,
+        public readonly ?string $smsFallbackMethod = null,
+        public readonly ?bool $publicApplicationConnectEnabled = null,
     ) {
     }
 
@@ -38,6 +43,11 @@ final class UpdateApplicationRequest extends FormRequest
             'StatusCallbackEvent' => 'statusCallbackEvent',
             'MessageStatusCallback' => 'messageStatusCallback',
             'SmsStatusCallback' => 'smsStatusCallback',
+            'SmsUrl' => 'smsUrl',
+            'SmsMethod' => 'smsMethod',
+            'SmsFallbackUrl' => 'smsFallbackUrl',
+            'SmsFallbackMethod' => 'smsFallbackMethod',
+            'PublicApplicationConnectEnabled' => 'publicApplicationConnectEnabled',
         ];
     }
 }

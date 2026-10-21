@@ -109,6 +109,7 @@ final class SmokeTest extends TestCase
             to: '+14155550100',
             from: '+14155550101',
             url: 'https://example.com/twiml',
+            timeLimit: 3600,
         ));
 
         self::assertSame(self::CALL_SID, $call->sid);
@@ -136,6 +137,7 @@ final class SmokeTest extends TestCase
         self::assertSame('+14155550100', $parsed['To']);
         self::assertSame('+14155550101', $parsed['From']);
         self::assertSame('https://example.com/twiml', $parsed['Url']);
+        self::assertSame('3600', $parsed['TimeLimit']);
     }
 
     public function testCallsListAddsStartTimeFilterQueryNames(): void
@@ -881,6 +883,9 @@ final class SmokeTest extends TestCase
         $bag['client']->conferences->createParticipant($confSid, new \VoiceML\Model\CreateParticipantRequest(
             from: '+14155550101',
             to: '+14155550100',
+            conferenceStatusCallback: 'https://example.com/conf-status',
+            conferenceStatusCallbackMethod: 'POST',
+            conferenceStatusCallbackEvent: 'start end',
         ));
 
         self::assertCount(1, $bag['history']);
@@ -891,6 +896,9 @@ final class SmokeTest extends TestCase
         parse_str((string) $request->getBody(), $form);
         self::assertSame('+14155550101', $form['From'] ?? null);
         self::assertSame('+14155550100', $form['To'] ?? null);
+        self::assertSame('https://example.com/conf-status', $form['ConferenceStatusCallback'] ?? null);
+        self::assertSame('POST', $form['ConferenceStatusCallbackMethod'] ?? null);
+        self::assertSame('start end', $form['ConferenceStatusCallbackEvent'] ?? null);
     }
 
     public function testListCallNotificationsSendsLogAndMessageDateFilters(): void
@@ -1473,6 +1481,202 @@ final class SmokeTest extends TestCase
         parse_str((string) $request->getBody(), $parsed);
         self::assertSame('security-code', $parsed['Capture']);
         self::assertArrayNotHasKey('Status', $parsed);
+    }
+
+    // ---------------------------------------------------------------------
+    // v0.9.5 additions — spec 0.9.4 fields the server already honored
+    // ---------------------------------------------------------------------
+
+    public function testConferenceRecordingUpdateSendsPauseBehavior(): void
+    {
+        $confSid = 'CF' . str_repeat('a', 32);
+        $recSid = 'RE' . str_repeat('b', 32);
+        $bag = $this->makeClient([
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => $recSid,
+                'account_sid' => self::ACCOUNT_SID,
+                'call_sid' => self::CALL_SID,
+                'status' => 'paused',
+            ])),
+        ]);
+
+        $bag['client']->conferences->updateRecording(
+            $confSid,
+            $recSid,
+            new \VoiceML\Model\UpdateConferenceRecordingRequest(status: 'paused', pauseBehavior: 'skip'),
+        );
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('POST', $request->getMethod());
+        self::assertStringContainsString(
+            "/Conferences/{$confSid}/Recordings/{$recSid}.json",
+            (string) $request->getUri(),
+        );
+        parse_str((string) $request->getBody(), $parsed);
+        self::assertSame('paused', $parsed['Status']);
+        self::assertSame('skip', $parsed['PauseBehavior']);
+    }
+
+    public function testApplicationsCreateSendsSmsWebhooksAndConnectFlag(): void
+    {
+        $bag = $this->makeClient([
+            new Response(201, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => 'AP00000000000000000000000000000001',
+                'account_sid' => self::ACCOUNT_SID,
+                'friendly_name' => 'App',
+                'api_version' => '2010-04-01',
+                'voice_url' => 'https://example.com/voice',
+                'voice_caller_id_lookup' => false,
+                'date_created' => 'now',
+                'date_updated' => 'now',
+                'uri' => '/uri',
+            ])),
+        ]);
+
+        $bag['client']->applications->create(new \VoiceML\Model\CreateApplicationRequest(
+            friendlyName: 'App',
+            smsUrl: 'https://example.com/sms',
+            smsMethod: 'POST',
+            smsFallbackUrl: 'https://example.com/sms-fallback',
+            smsFallbackMethod: 'GET',
+            publicApplicationConnectEnabled: true,
+        ));
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('POST', $request->getMethod());
+        self::assertStringContainsString(
+            '/2010-04-01/Accounts/' . self::ACCOUNT_SID . '/Applications.json',
+            (string) $request->getUri(),
+        );
+        parse_str((string) $request->getBody(), $parsed);
+        self::assertSame('App', $parsed['FriendlyName']);
+        self::assertSame('https://example.com/sms', $parsed['SmsUrl']);
+        self::assertSame('POST', $parsed['SmsMethod']);
+        self::assertSame('https://example.com/sms-fallback', $parsed['SmsFallbackUrl']);
+        self::assertSame('GET', $parsed['SmsFallbackMethod']);
+        self::assertSame('true', $parsed['PublicApplicationConnectEnabled']);
+    }
+
+    public function testApplicationsUpdateSendsSmsWebhooksAndConnectFlag(): void
+    {
+        $appSid = 'AP00000000000000000000000000000001';
+        $bag = $this->makeClient([
+            new Response(200, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => $appSid,
+                'account_sid' => self::ACCOUNT_SID,
+                'friendly_name' => 'App',
+                'api_version' => '2010-04-01',
+                'voice_url' => 'https://example.com/voice',
+                'voice_caller_id_lookup' => false,
+                'date_created' => 'now',
+                'date_updated' => 'now',
+                'uri' => '/uri',
+            ])),
+        ]);
+
+        $bag['client']->applications->update($appSid, new \VoiceML\Model\UpdateApplicationRequest(
+            smsUrl: 'https://example.com/sms-v2',
+            smsMethod: 'GET',
+            smsFallbackUrl: 'https://example.com/sms-fallback-v2',
+            smsFallbackMethod: 'POST',
+            publicApplicationConnectEnabled: false,
+        ));
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('POST', $request->getMethod());
+        self::assertStringContainsString(
+            "/Applications/{$appSid}.json",
+            (string) $request->getUri(),
+        );
+        parse_str((string) $request->getBody(), $parsed);
+        self::assertSame('https://example.com/sms-v2', $parsed['SmsUrl']);
+        self::assertSame('GET', $parsed['SmsMethod']);
+        self::assertSame('https://example.com/sms-fallback-v2', $parsed['SmsFallbackUrl']);
+        self::assertSame('POST', $parsed['SmsFallbackMethod']);
+        self::assertSame('false', $parsed['PublicApplicationConnectEnabled']);
+        self::assertArrayNotHasKey('VoiceUrl', $parsed);
+    }
+
+    public function testMessagesCreateScheduledSendsSendAtAndScheduleType(): void
+    {
+        $bag = $this->makeClient([
+            new Response(201, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => self::MESSAGE_SID,
+                'account_sid' => self::ACCOUNT_SID,
+                'api_version' => '2010-04-01',
+                'to' => '+14155550100',
+                'from' => '+14155550101',
+                'body' => 'later',
+                'status' => 'scheduled',
+                'num_segments' => '1',
+                'num_media' => '0',
+                'direction' => 'outbound-api',
+                'messaging_service_sid' => 'MG00000000000000000000000000000001',
+                'date_created' => 'now',
+                'date_updated' => 'now',
+                'uri' => '/uri',
+            ])),
+        ]);
+
+        $bag['client']->messages->create(new \VoiceML\Model\CreateMessageRequest(
+            to: '+14155550100',
+            body: 'later',
+            messagingServiceSid: 'MG00000000000000000000000000000001',
+            sendAt: '2026-10-22T15:00:00Z',
+            scheduleType: 'fixed',
+        ));
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        parse_str((string) $request->getBody(), $parsed);
+        self::assertSame('2026-10-22T15:00:00Z', $parsed['SendAt']);
+        self::assertSame('fixed', $parsed['ScheduleType']);
+        self::assertSame('MG00000000000000000000000000000001', $parsed['MessagingServiceSid']);
+    }
+
+    public function testStartTranscriptionSendsStatusCallbackUrlAndEngineFields(): void
+    {
+        $bag = $this->makeClient([
+            new Response(201, ['Content-Type' => 'application/json'], (string) json_encode([
+                'sid' => 'GT00000000000000000000000000000001',
+                'account_sid' => self::ACCOUNT_SID,
+                'call_sid' => self::CALL_SID,
+                'status' => 'in-progress',
+                'api_version' => '2010-04-01',
+                'uri' => '/uri',
+            ])),
+        ]);
+
+        $bag['client']->calls->startTranscription(self::CALL_SID, new \VoiceML\Model\StartTranscriptionRequest(
+            name: 'live',
+            statusCallbackUrl: 'https://example.com/transcription-status',
+            statusCallbackMethod: 'POST',
+            statusCallbackEvents: 'in-progress completed',
+            speechModel: 'nova-3',
+            enableAutomaticPunctuation: true,
+            intelligenceService: 'voice-intelligence',
+        ));
+
+        /** @var Request $request */
+        $request = $bag['history'][0]['request'];
+        self::assertSame('POST', $request->getMethod());
+        self::assertStringContainsString(
+            '/Calls/' . self::CALL_SID . '/Transcriptions.json',
+            (string) $request->getUri(),
+        );
+        parse_str((string) $request->getBody(), $parsed);
+        self::assertSame('live', $parsed['Name']);
+        self::assertSame('https://example.com/transcription-status', $parsed['StatusCallbackUrl']);
+        self::assertSame('POST', $parsed['StatusCallbackMethod']);
+        self::assertSame('in-progress completed', $parsed['StatusCallbackEvents']);
+        self::assertSame('nova-3', $parsed['SpeechModel']);
+        self::assertSame('true', $parsed['EnableAutomaticPunctuation']);
+        self::assertSame('voice-intelligence', $parsed['IntelligenceService']);
+        // The pre-0.9.5 wire name is gone — the server never read it.
+        self::assertArrayNotHasKey('StatusCallback', $parsed);
     }
 
     /**

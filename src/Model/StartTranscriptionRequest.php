@@ -6,6 +6,9 @@ namespace VoiceML\Model;
 
 /**
  * Body for `POST /Calls/{sid}/Transcriptions`.
+ *
+ * `statusCallbackUrl` maps to the wire field `StatusCallbackUrl` (the API's
+ * REST name; there is no `StatusCallback` alias on this route).
  */
 final class StartTranscriptionRequest extends FormRequest
 {
@@ -17,9 +20,12 @@ final class StartTranscriptionRequest extends FormRequest
         public readonly ?bool $profanityFilter = null,
         public readonly ?bool $partialResults = null,
         public readonly ?string $hints = null,
-        public readonly ?string $statusCallback = null,
+        public readonly ?string $statusCallbackUrl = null,
         public readonly ?string $statusCallbackMethod = null,
         public readonly ?string $statusCallbackEvents = null,
+        public readonly ?string $speechModel = null,
+        public readonly ?bool $enableAutomaticPunctuation = null,
+        public readonly ?string $intelligenceService = null,
     ) {
     }
 
@@ -33,9 +39,12 @@ final class StartTranscriptionRequest extends FormRequest
             'ProfanityFilter' => 'profanityFilter',
             'PartialResults' => 'partialResults',
             'Hints' => 'hints',
-            'StatusCallback' => 'statusCallback',
+            'StatusCallbackUrl' => 'statusCallbackUrl',
             'StatusCallbackMethod' => 'statusCallbackMethod',
             'StatusCallbackEvents' => 'statusCallbackEvents',
+            'SpeechModel' => 'speechModel',
+            'EnableAutomaticPunctuation' => 'enableAutomaticPunctuation',
+            'IntelligenceService' => 'intelligenceService',
         ];
     }
 }
